@@ -29,7 +29,7 @@ class RegistrationRules {
     }
     final year = int.parse(id.substring(0, 2));
     if (year < minYear || year > maxYear) {
-      return 'ปีที่เข้าศึกษา (2 ตัวแรกของรหัส) ต้องอยู่ระหว่าง $minYear–$maxYear';
+      return 'จำกัดให้ใช้แค่ปีการศึกษาแค่ 66-69 เท่านั้น';
     }
     if (id.substring(2, 4) != scienceFacultyCode) {
       return 'แอปนี้ใช้ได้เฉพาะนิสิตคณะวิทยาศาสตร์';
@@ -60,7 +60,7 @@ class RegistrationRules {
       return 'กรอกเป็นตัวอักษรภาษาอังกฤษ';
     }
     if (parseNameEn(name) == null) {
-      return 'กรอกทั้งชื่อและนามสกุล เช่น nanthit bunmee';
+      return 'กรอกทั้งชื่อและนามสกุล';
     }
     return null;
   }
@@ -80,12 +80,12 @@ class RegistrationRules {
     final local = email.substring(0, email.length - emailDomain.length);
     final m = RegExp(r'^([a-z]+)(\d{2})$').firstMatch(local);
     if (m == null) {
-      return 'รูปแบบอีเมลไม่ถูกต้อง (ชื่อ + ตัวแรกนามสกุล + ปี เช่น nanthitb67@nu.ac.th)';
+      return 'รูปแบบอีเมลไม่ถูกต้อง';
     }
     final letters = m.group(1)!;
     final year = int.parse(m.group(2)!);
     if (year < minYear || year > maxYear) {
-      return 'เลขปีในอีเมลต้องอยู่ระหว่าง $minYear–$maxYear';
+      return 'เลขปีในอีเมลไม่ถูกต้อง';
     }
     final name = parseNameEn(nameEn);
     if (name != null) {
