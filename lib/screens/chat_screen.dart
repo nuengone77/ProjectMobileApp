@@ -1,10 +1,17 @@
+// หน้าแชท ใช้ร่วมกันทั้งนักศึกษาและเจ้าหน้าที่
+// บับเบิลฟ้า = ข้อความฝั่งเรา, บับเบิลเทา = อีกฝั่ง (ตามไฟล์ UX/UI)
 import 'package:flutter/material.dart';
 
 import '../data/mock_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'profile_screen.dart' show showStudentProfile;
 
+/// หน้าแชทของห้อง [conversationId]
+/// - หัวหน้า: รูป + ชื่ออีกฝ่าย และหัวข้อการปรึกษา
+/// - เมนู … = จบการปรึกษา
+/// - เปิดหน้าแล้วถือว่าอ่านทุกข้อความแล้ว (เลขแจ้งเตือนหาย)
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.conversationId});
   final String conversationId;
@@ -35,6 +42,8 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  /// ถูกเรียกทุกครั้งที่ store เปลี่ยน: ถ้ามีข้อความใหม่เข้าห้องนี้
+  /// ให้ถือว่าอ่านแล้ว และเลื่อนลงไปข้อความล่าสุด
   void _onStore() {
     if (!mounted || store.currentUser == null) return;
     if (conv.messages.length != _lastCount) {
@@ -53,32 +62,42 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _send([String? text]) {
-    store.send(conv, text ?? _input.text);
+  /// ส่งข้อความจากช่องพิมพ์
+  void _send() {
+    store.send(conv, _input.text);
     _input.clear();
   }
 
-  Future<void> _report() async {
-    final result = await showModalBottomSheet<(String, String)>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => const _ReportSheet(),
-    );
-    if (result == null || !mounted) return;
-    store.report(conv, result.$1, result.$2);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ส่งรายงานเข้าระบบรายงานเรียบร้อยแล้ว'),
-        backgroundColor: AppColors.alert,
-      ),
-    );
+  /// ถามยืนยันก่อนจบการปรึกษา
+  /// เปิดฟอร์มสรุปการปรึกษา (เจ้าหน้าที่) คืนค่า (เรื่องที่ปรึกษา, ช่วยอะไรได้บ้าง)
+  Future<(String, String, CaseLevel)?> _askSummary({required bool closing}) =>
+      showModalBottomSheet<(String, String, CaseLevel)>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (_) => _SummarySheet(conv: conv, closing: closing),
+      );
+
+  /// เจ้าหน้าที่บันทึก/แก้ไขสรุปของแชทที่จบแล้ว
+  Future<void> _editSummary() async {
+    final r = await _askSummary(closing: false);
+    if (r != null) store.saveSummary(conv, r.$1, r.$2, r.$3);
   }
 
+  /// จบการปรึกษา
+  /// - เจ้าหน้าที่: ต้องกรอกสรุป 2 ช่องก่อน (เก็บเป็นประวัติ)
+  /// - นักศึกษา: กดยืนยันอย่างเดียว
   Future<void> _close() async {
+    if (store.currentUser!.isStaff) {
+      final r = await _askSummary(closing: true);
+      if (r != null) {
+        store.closeConversation(conv, topic: r.$1, help: r.$2, level: r.$3);
+      }
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -111,72 +130,71 @@ class _ChatScreenState extends State<ChatScreen> {
         final AppUser? other = me.isStaff
             ? store.user(c.studentId)
             : (c.staffId == null ? null : store.user(c.staffId!));
-        final title = other == null
+        // นักศึกษาเห็นแชทส่วนรวม (คนไหนก็ได้ / เร่งด่วน) เป็น “แชทรวมเจ้าหน้าที่” พร้อมรูปแมวไข่หวาน
+        // แทนชื่อพี่คนใดคนหนึ่ง เพราะพี่ทุกคนเห็นและตอบได้
+        final sharedForStudent = !me.isStaff && !c.isSpecific;
+        final title = sharedForStudent
+            ? 'แชทรวมเจ้าหน้าที่'
+            : other == null
             ? 'พี่ไข่หวาน (คนไหนก็ได้)'
             : (me.isStaff ? other.name : other.displayName);
-        final typing = store.typing.contains(c.id);
-        final reported = store.reports.any((r) => r.conversationId == c.id);
         final msgs = c.messages.reversed.toList();
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.surface,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.surface,
             centerTitle: false,
             titleSpacing: 0,
-            title: Row(
-              children: [
-                if (other != null)
-                  StaffAvatar(user: other, size: 38, showOnline: other.isStaff)
-                else
-                  const CircleAvatar(
-                    radius: 19,
-                    backgroundColor: AppColors.orange,
-                    child: Text('🥚'),
-                  ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+            // ฝั่งเจ้าหน้าที่: แตะรูป/ชื่อนักศึกษาบนหัวแชทเพื่อดูโปรไฟล์
+            title: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: me.isStaff && other != null
+                  ? () => showStudentProfile(context, other)
+                  : null,
+              child: Row(
+                children: [
+                  if (sharedForStudent)
+                    const CatAvatar(size: 38)
+                  else if (other != null)
+                    StaffAvatar(user: other, size: 38)
+                  else
+                    const CatAvatar(size: 38),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        typing
-                            ? 'กำลังพิมพ์...'
-                            : '${cat.title} · ${c.subtopic}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: typing ? AppColors.bubbleMe : AppColors.muted,
-                          fontWeight: FontWeight.w500,
+                        Text(
+                          cat.title,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              if (me.isStaff)
-                IconButton(
-                  tooltip: 'รายงาน (ระบบรายงาน)',
-                  onPressed: _report,
-                  icon: Text(
-                    '!!',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      fontStyle: FontStyle.italic,
-                      color: reported ? Colors.grey : AppColors.alert,
+                      ],
                     ),
                   ),
+                ],
+              ),
+            ),
+            actions: [
+              // ปุ่มดูโปรไฟล์นักศึกษา (เฉพาะเจ้าหน้าที่)
+              if (me.isStaff && other != null)
+                IconButton(
+                  tooltip: 'ดูโปรไฟล์ผู้มาปรึกษา',
+                  icon: const Icon(Icons.badge_outlined),
+                  onPressed: () => showStudentProfile(context, other),
                 ),
               if (!c.closed)
                 PopupMenuButton<String>(
@@ -193,27 +211,30 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: ListView.builder(
                   controller: _scroll,
+                  // reverse = ข้อความล่าสุดอยู่ล่างสุด และเปิดมาเห็นล่างสุดทันที
                   reverse: true,
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  itemCount: msgs.length + (typing ? 1 : 0),
+                  itemCount: msgs.length,
                   itemBuilder: (context, i) {
-                    if (typing && i == 0) return const _TypingBubble();
-                    final m = msgs[i - (typing ? 1 : 0)];
+                    final m = msgs[i];
+                    if (m.isAlert) return _AlertNote(text: m.text);
                     if (m.isSystem) return _SystemNote(text: m.text);
                     final mine =
                         m.senderId == me.id ||
-                        (me.isStaff && m.senderId != c.studentId); // staff side: all staff msgs on the right
+                        (me.isStaff && m.senderId != c.studentId); // ฝั่งเจ้าหน้าที่: ข้อความของเจ้าหน้าที่ทุกคนอยู่ขวา
                     return _Bubble(
                       message: m,
                       mine: mine,
                       sender: store.user(m.senderId),
-                      // on the staff side, label replies written by a colleague
+                      // ฝั่งเจ้าหน้าที่: ถ้าเพื่อนเจ้าหน้าที่เป็นคนตอบ ให้แสดงชื่อกำกับ
                       showSender: mine && m.senderId != me.id,
                     );
                   },
                 ),
               ),
-              if (c.closed)
+              if (c.closed && me.isStaff)
+                _SummaryPanel(conv: c, onEdit: _editSummary)
+              else if (c.closed)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -227,12 +248,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 )
-              else ...[
-                if (!me.isStaff &&
-                    c.messages.where((m) => m.senderId == me.id).isEmpty)
-                  _QuickReplies(subtopic: c.subtopic, onPick: _send),
+              else
                 _Composer(controller: _input, onSend: _send),
-              ],
             ],
           ),
         );
@@ -241,6 +258,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
+/// แถบใต้หัวหน้า บอกว่าเป็นการปรึกษาแบบส่วนรวม / ส่วนตัว / เร่งด่วน
+/// ห้องเร่งด่วนเป็นแถบสีแดง (ฝั่งเจ้าหน้าที่เห็นด้วยว่าใครเป็นผู้รับเรื่อง)
 class _TopicBanner extends StatelessWidget {
   const _TopicBanner({required this.conv, required this.isStaff});
   final Conversation conv;
@@ -248,21 +267,28 @@ class _TopicBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scope = conv.isSpecific
+    final urgent = MockStore.category(conv.categoryId).urgent;
+    final scope = urgent
+        ? 'ขอความช่วยเหลือแบบเร่งด่วน'
+        : conv.isSpecific
         ? 'ปรึกษาแบบเจาะจง (ส่วนตัว)'
         : 'ปรึกษาเจ้าหน้าที่คนไหนก็ได้ (ส่วนรวม)';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: AppColors.orange.withValues(alpha: 0.35),
+      color: urgent
+          ? AppColors.urgentSoft
+          : AppColors.honey.withValues(alpha: 0.35),
       child: Row(
         children: [
           Icon(
-            conv.isSpecific
+            urgent
+                ? Icons.sos_rounded
+                : conv.isSpecific
                 ? Icons.lock_person_outlined
                 : Icons.groups_outlined,
             size: 18,
-            color: AppColors.ink,
+            color: urgent ? AppColors.alert : AppColors.ink,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -282,6 +308,7 @@ class _TopicBanner extends StatelessWidget {
   }
 }
 
+/// บับเบิลข้อความ 1 อัน: [mine] = ฝั่งเรา (ขวา/ฟ้า) ไม่ใช่ = อีกฝั่ง (ซ้าย/เทา มีรูป)
 class _Bubble extends StatelessWidget {
   const _Bubble({
     required this.message,
@@ -302,7 +329,7 @@ class _Bubble extends StatelessWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: mine ? AppColors.bubbleMe : AppColors.bubbleOther,
+        color: mine ? AppColors.caramel : AppColors.bubbleOther,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(20),
           topRight: const Radius.circular(20),
@@ -359,6 +386,42 @@ class _Bubble extends StatelessWidget {
   }
 }
 
+/// การ์ดแจ้งเตือนสำคัญสีแดงกลางแชท (เช่น เบอร์ฉุกเฉินในแชทเร่งด่วน)
+class _AlertNote extends StatelessWidget {
+  const _AlertNote({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.urgentSoft,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.alert.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.phone_in_talk_rounded, color: AppColors.alert),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: AppColors.alert,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ข้อความจากระบบ แสดงเป็นแถบเล็กกลางจอ เช่น “เริ่มการปรึกษา...”
 class _SystemNote extends StatelessWidget {
   const _SystemNote({required this.text});
   final String text;
@@ -385,92 +448,7 @@ class _SystemNote extends StatelessWidget {
   }
 }
 
-class _TypingBubble extends StatefulWidget {
-  const _TypingBubble();
-
-  @override
-  State<_TypingBubble> createState() => _TypingBubbleState();
-}
-
-class _TypingBubbleState extends State<_TypingBubble>
-    with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(left: 36, top: 4, bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.bubbleOther,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(3, (i) {
-              final t = ((_c.value * 3) - i).clamp(0.0, 1.0);
-              final up = t < 0.5 ? t * 2 : (1 - t) * 2;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                width: 8,
-                height: 8,
-                transform: Matrix4.translationValues(0, -4 * up, 0),
-                decoration: BoxDecoration(
-                  color: AppColors.muted.withValues(alpha: 0.4 + up * 0.6),
-                  shape: BoxShape.circle,
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickReplies extends StatelessWidget {
-  const _QuickReplies({required this.subtopic, required this.onPick});
-  final String subtopic;
-  final ValueChanged<String> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final options = [
-      'สวัสดีค่ะ/ครับ',
-      'ขอสอบถามเรื่อง$subtopicหน่อย',
-      'ต้องเตรียมอะไรบ้าง?',
-    ];
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        itemCount: options.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => ActionChip(
-          label: Text(options[i]),
-          backgroundColor: AppColors.cream,
-          side: const BorderSide(color: AppColors.orange),
-          onPressed: () => onPick(options[i]),
-        ),
-      ),
-    );
-  }
-}
-
+/// แถบพิมพ์ข้อความด้านล่าง: ปุ่มแนบรูป (ยังไม่เปิดใช้), ช่องพิมพ์, ปุ่มส่ง
 class _Composer extends StatelessWidget {
   const _Composer({required this.controller, required this.onSend});
   final TextEditingController controller;
@@ -481,8 +459,8 @@ class _Composer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFEDE6DC))),
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: SafeArea(
         top: false,
@@ -510,7 +488,7 @@ class _Composer extends StatelessWidget {
                   hintText: 'พิมพ์ข้อความ...',
                   isDense: true,
                   filled: true,
-                  fillColor: const Color(0xFFF3F1EE),
+                  fillColor: AppColors.field,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -532,7 +510,7 @@ class _Composer extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             IconButton.filled(
-              style: IconButton.styleFrom(backgroundColor: AppColors.bubbleMe),
+              style: IconButton.styleFrom(backgroundColor: AppColors.caramel),
               onPressed: onSend,
               icon: const Icon(Icons.send_rounded, color: Colors.white),
             ),
@@ -543,105 +521,192 @@ class _Composer extends StatelessWidget {
   }
 }
 
-class _ReportSheet extends StatefulWidget {
-  const _ReportSheet();
+/// ฟอร์มสรุปการปรึกษา (เลื่อนขึ้นจากด้านล่าง) ให้เจ้าหน้าที่กรอกตอนจบการปรึกษา
+/// ต้องกรอกครบ: เรื่องที่ปรึกษา / คำปรึกษาที่เจ้าหน้าที่ให้ / ระดับเคส (เล็ก/กลาง/ใหญ่)
+/// [closing] = true ตอนกดจบ, false ตอนแก้ไขสรุปทีหลัง (เติมค่าเดิมไว้ให้)
+class _SummarySheet extends StatefulWidget {
+  const _SummarySheet({required this.conv, required this.closing});
+  final Conversation conv;
+  final bool closing;
 
   @override
-  State<_ReportSheet> createState() => _ReportSheetState();
+  State<_SummarySheet> createState() => _SummarySheetState();
 }
 
-class _ReportSheetState extends State<_ReportSheet> {
-  String? _reason;
-  final _detail = TextEditingController();
+class _SummarySheetState extends State<_SummarySheet> {
+  final _form = GlobalKey<FormState>();
+  late final _topic = TextEditingController(text: widget.conv.summaryTopic);
+  late final _help = TextEditingController(text: widget.conv.summaryHelp);
+  late CaseLevel? _level = widget.conv.caseLevel; // ระดับเคส (ต้องเลือก)
+
+  InputDecoration _box(String label, String hint) => InputDecoration(
+    labelText: label,
+    hintText: hint,
+    alignLabelWithHint: true,
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    contentPadding: const EdgeInsets.all(16),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: AppColors.line),
+    ),
+  );
+
+  String? _required(String? v) =>
+      (v == null || v.trim().isEmpty) ? 'กรุณากรอกช่องนี้' : null;
 
   @override
   Widget build(BuildContext context) {
+    final student = store.user(widget.conv.studentId);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(2),
+          child: Form(
+            key: _form,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  widget.closing ? 'จบการปรึกษา' : 'สรุปการปรึกษา',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Row(
-                children: [
-                  Text(
-                    '!!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.alert,
+                const SizedBox(height: 4),
+                Text(
+                  'บันทึกสรุปเก็บเป็นประวัติ · ${student.name}',
+                  style: const TextStyle(color: AppColors.muted),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _topic,
+                  maxLines: 3,
+                  validator: _required,
+                  decoration: _box(
+                    'เรื่องที่ปรึกษา',
+                    'เช่น สอบถามเอกสาร กยศ. ที่ต้องใช้',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _help,
+                  maxLines: 3,
+                  validator: _required,
+                  decoration: _box(
+                    'คำปรึกษาที่เจ้าหน้าที่ให้',
+                    'เช่น แจ้งรายการเอกสารและกำหนดส่ง',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // ระดับเคส: เล็ก 🟢 / กลาง 🟡 / ใหญ่ 🔴
+                DropdownButtonFormField<CaseLevel>(
+                  initialValue: _level,
+                  borderRadius: BorderRadius.circular(16),
+                  decoration: _box('ระดับเคส', ''),
+                  hint: const Text('เลือกระดับเคส'),
+                  items: [
+                    for (final l in CaseLevel.values)
+                      DropdownMenuItem(value: l, child: Text(l.display)),
+                  ],
+                  onChanged: (v) => setState(() => _level = v),
+                  validator: (v) => v == null ? 'กรุณาเลือกระดับเคส' : null,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () {
+                    if (!_form.currentState!.validate()) return;
+                    Navigator.pop(context, (_topic.text, _help.text, _level!));
+                  },
+                  child: Text(
+                    widget.closing ? 'บันทึกและจบการปรึกษา' : 'บันทึกสรุป',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// แถบล่างของแชทที่จบแล้ว (ฝั่งเจ้าหน้าที่): แสดงสรุปการปรึกษา + ปุ่มแก้ไข
+/// ถ้านักศึกษากดจบเองจะยังไม่มีสรุป -> แสดงปุ่ม “บันทึกสรุป”
+class _SummaryPanel extends StatelessWidget {
+  const _SummaryPanel({required this.conv, required this.onEdit});
+  final Conversation conv;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final closer = conv.closedById == null
+        ? null
+        : store.user(conv.closedById!);
+    Widget field(String label, String value) => Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+          ),
+          Text(value),
+        ],
+      ),
+    );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: const BoxDecoration(
+        color: AppColors.cream,
+        border: Border(top: BorderSide(color: AppColors.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.assignment_turned_in_outlined,
+                  size: 18,
+                  color: AppColors.caramel,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'จบการปรึกษาแล้ว'
+                    '${conv.closedAt != null ? ' · ${timeLabel(conv.closedAt!)}' : ''}'
+                    '${closer != null ? ' · โดย ${closer.isStaff ? closer.displayName : 'นักศึกษา'}' : ''}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Text(
-                    'ระบบรายงาน',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
+                ),
+                TextButton(
+                  onPressed: onEdit,
+                  child: Text(conv.hasSummary ? 'แก้ไขสรุป' : 'บันทึกสรุป'),
+                ),
+              ],
+            ),
+            if (conv.hasSummary) ...[
+              if (conv.caseLevel != null)
+                field('ระดับเคส', conv.caseLevel!.display),
+              field('เรื่องที่ปรึกษา', conv.summaryTopic),
+              field('คำปรึกษาที่เจ้าหน้าที่ให้', conv.summaryHelp),
+            ] else
               const Text(
-                'รายงานการสนทนานี้ให้ผู้ดูแลระบบตรวจสอบ',
-                style: TextStyle(color: AppColors.muted),
+                'ยังไม่ได้บันทึกสรุป (นักศึกษากดจบการปรึกษาเอง)',
+                style: TextStyle(color: AppColors.alert),
               ),
-              const SizedBox(height: 12),
-              RadioGroup<String>(
-                groupValue: _reason,
-                onChanged: (v) => setState(() => _reason = v),
-                child: Column(
-                  children: [
-                    for (final r in MockStore.reportReasons)
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        value: r,
-                        title: Text(r),
-                        activeColor: AppColors.alert,
-                      ),
-                  ],
-                ),
-              ),
-              TextField(
-                controller: _detail,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  hintText: 'รายละเอียดเพิ่มเติม (ไม่บังคับ)',
-                  contentPadding: const EdgeInsets.all(14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Colors.black26),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: AppColors.alert),
-                onPressed: _reason == null
-                    ? null
-                    : () => Navigator.pop(context, (
-                        _reason!,
-                        _detail.text.trim(),
-                      )),
-                child: const Text('ส่งรายงาน'),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

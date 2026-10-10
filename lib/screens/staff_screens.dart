@@ -1,13 +1,24 @@
+// หน้าจอฝั่งเจ้าหน้าที่
+//
+// ลำดับการใช้งาน (ตามไฟล์ UX/UI):
+//   StaffHome: ตัวเลขสรุป + การ์ดประวัติการปรึกษาแยกหัวข้อ (ทั่วไป / เร่งด่วน)
+//     - การ์ดหัวข้อ -> StaffConversationsScreen(closed: true) ประวัติแชทที่จบแล้วพร้อมสรุป
+//   แท็บ “ข้อความ” (StaffInboxScreen) = แชทที่ยังคุยอยู่ เรียงลงมา
+//   จบการปรึกษา: เจ้าหน้าที่กรอกสรุป (เรื่องที่ปรึกษา / ช่วยอะไรได้บ้าง) ใน chat_screen.dart
+// แท็บอื่น: นัดหมาย (StaffAppointmentsScreen), โปรไฟล์
 import 'package:flutter/material.dart';
 
 import '../data/mock_store.dart';
-import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import 'chat_screen.dart';
+import 'appointment_screens.dart';
 import 'profile_screen.dart';
+import 'report_screen.dart';
 import 'student_screens.dart' show ConversationTile;
 
+/// โครงหลักฝั่งเจ้าหน้าที่: แถบเมนูล่าง 4 แท็บ
+/// (ภาพรวม / ข้อความ / นัดหมาย / โปรไฟล์)
+/// พร้อม badge ข้อความที่ยังไม่อ่าน และคำขอนัดที่รอยืนยัน
 class StaffShell extends StatefulWidget {
   const StaffShell({super.key});
 
@@ -24,27 +35,27 @@ class _StaffShellState extends State<StaffShell> {
       listenable: store,
       builder: (context, _) {
         final unread = store.staffUnread();
-        final reports = store.reports.length;
+        final pendingAppts = store.pendingAppointmentCount;
         return Scaffold(
           body: IndexedStack(
             index: _tab,
             children: const [
               StaffHome(),
               StaffInboxScreen(),
-              ReportsScreen(),
+              StaffAppointmentsScreen(),
               ProfileScreen(),
             ],
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
-            backgroundColor: Colors.white,
-            indicatorColor: AppColors.orange,
+            backgroundColor: AppColors.surface,
+            indicatorColor: AppColors.honey,
             onDestinationSelected: (i) => setState(() => _tab = i),
             destinations: [
               const NavigationDestination(
                 icon: Icon(Icons.dashboard_outlined),
                 selectedIcon: Icon(Icons.dashboard),
-                label: 'หัวข้อ',
+                label: 'ภาพรวม',
               ),
               NavigationDestination(
                 icon: Badge(
@@ -61,16 +72,16 @@ class _StaffShellState extends State<StaffShell> {
               ),
               NavigationDestination(
                 icon: Badge(
-                  isLabelVisible: reports > 0,
-                  label: Text('$reports'),
-                  child: const Icon(Icons.report_outlined),
+                  isLabelVisible: pendingAppts > 0,
+                  label: Text('$pendingAppts'),
+                  child: const Icon(Icons.event_outlined),
                 ),
                 selectedIcon: Badge(
-                  isLabelVisible: reports > 0,
-                  label: Text('$reports'),
-                  child: const Icon(Icons.report),
+                  isLabelVisible: pendingAppts > 0,
+                  label: Text('$pendingAppts'),
+                  child: const Icon(Icons.event),
                 ),
-                label: 'ระบบรายงาน',
+                label: 'นัดหมาย',
               ),
               const NavigationDestination(
                 icon: Icon(Icons.person_outline),
@@ -85,21 +96,31 @@ class _StaffShellState extends State<StaffShell> {
   }
 }
 
+/// หน้าแรกเจ้าหน้าที่: ข้อมูลตัวเอง, ตัวเลขสรุป และการ์ดประวัติการปรึกษาแยกหัวข้อ
+/// (นัดหมายดูที่แท็บ “นัดหมาย”)
 class StaffHome extends StatelessWidget {
   const StaffHome({super.key});
 
+  // ฟัง store เพื่อให้ตัวเลขบนกระดิ่งอัปเดตทันทีเมื่อมีข้อความใหม่เข้ามา
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: store,
+    builder: (context, _) =>
+        store.currentUser == null ? const SizedBox() : _content(context),
+  );
+
+  Widget _content(BuildContext context) {
     final me = store.currentUser!;
-    final total = store.staffUnread();
-    final mine = store.staffUnread(specific: true);
+    // ตัวเลขสรุป: จำนวนที่ “ฉัน” ให้คำปรึกษาไปแล้ว (แชทที่จบแล้ว) แยกเร่งด่วน / ทั่วไป
+    final urgentDone = store.staffConsultedCount('urgent');
+    final generalDone = store.staffConsultedCount('general');
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
           Row(
             children: [
-              StaffAvatar(user: me, size: 52, showOnline: true),
+              StaffAvatar(user: me, size: 52),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -114,7 +135,7 @@ class StaffHome extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'เจ้าหน้าที่ · ${me.specialty}',
+                      'เจ้าหน้าที่',
                       style: const TextStyle(color: AppColors.muted),
                     ),
                   ],
@@ -126,48 +147,68 @@ class StaffHome extends StatelessWidget {
           Row(
             children: [
               _Stat(
-                label: 'ข้อความใหม่ทั้งหมด',
-                value: total,
+                label: 'ให้คำปรึกษาเร่งด่วนแล้ว',
+                value: urgentDone,
                 color: AppColors.alert,
               ),
               const SizedBox(width: 12),
               _Stat(
-                label: 'ส่งถึงฉันโดยตรง',
-                value: mine,
-                color: AppColors.bubbleMe,
+                label: 'ให้คำปรึกษาทั่วไปแล้ว',
+                value: generalDone,
+                color: AppColors.info,
               ),
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
-            'หัวข้อการปรึกษา',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink,
+          const _Heading('ประวัติการปรึกษา (จบแล้ว)'),
+          // แต่ละหัวข้อ = ประวัติแชทที่จบการปรึกษาแล้ว (แชทที่ยังคุยอยู่ดูที่แท็บ “ข้อความ”)
+          for (final c in MockStore.categories)
+            Builder(
+              builder: (context) {
+                final done = store.staffConversations(
+                  categoryId: c.id,
+                  closed: true,
+                );
+                final noSummary = done.where((x) => !x.hasSummary).length;
+                return OrangeCard(
+                  title: c.title,
+                  subtitle:
+                      '${done.length} การสนทนาที่จบแล้ว'
+                      '${noSummary > 0 ? ' · ยังไม่สรุป $noSummary' : ''}',
+                  icon: c.icon,
+                  color: c.urgent ? AppColors.urgentSoft : null,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StaffConversationsScreen(
+                        title: 'ประวัติ · ${c.title}',
+                        categoryId: c.id,
+                        closed: true,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          const SizedBox(height: 10),
+          const _Heading('รายงาน'),
+          // ตารางสรุปเคสของฉัน (online + onsite) export ส่งส่วนกลางได้
+          OrangeCard(
+            title: 'ตารางสรุปเคส',
+            subtitle: 'เคสของฉัน · export CSV / PDF',
+            icon: Icons.table_chart_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StaffReportScreen()),
             ),
           ),
-          const SizedBox(height: 14),
-          for (final c in MockStore.categories)
-            OrangeCard(
-              title: c.title,
-              subtitle:
-                  '${store.staffConversations(categoryId: c.id).length} การสนทนา',
-              icon: c.icon,
-              badge: store.staffUnread(categoryId: c.id),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => StaffSubtopicScreen(category: c),
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
+/// การ์ดตัวเลขสรุป (ตัวเลขใหญ่ + คำอธิบาย) บนหน้าแรกเจ้าหน้าที่
 class _Stat extends StatelessWidget {
   const _Stat({required this.label, required this.value, required this.color});
   final String label;
@@ -180,7 +221,7 @@ class _Stat extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -205,206 +246,51 @@ class _Stat extends StatelessWidget {
   }
 }
 
-class StaffSubtopicScreen extends StatelessWidget {
-  const StaffSubtopicScreen({super.key, required this.category});
-  final ConsultCategory category;
+/// หัวข้อกลุ่มบนหน้าแรกเจ้าหน้าที่
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(category.title)),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const StepHeader(
-              title: 'เรื่องที่นักศึกษาปรึกษา',
-              caption: 'กระดิ่งแสดงจำนวนข้อความที่ยังไม่ได้อ่าน',
-            ),
-            for (final s in category.subtopics)
-              OrangeCard(
-                title: s,
-                subtitle:
-                    '${store.staffConversations(categoryId: category.id, subtopic: s).length} การสนทนา',
-                badge: store.staffUnread(categoryId: category.id, subtopic: s),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        StaffScopeScreen(category: category, subtopic: s),
-                  ),
-                ),
-              ),
-          ],
-        ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: AppColors.ink,
       ),
-    );
-  }
+    ),
+  );
 }
 
-class StaffScopeScreen extends StatelessWidget {
-  const StaffScopeScreen({
-    super.key,
-    required this.category,
-    required this.subtopic,
-  });
-  final ConsultCategory category;
-  final String subtopic;
-
-  void _open(BuildContext context, bool specific) {
-    final list = store.staffConversations(
-      categoryId: category.id,
-      subtopic: subtopic,
-      specific: specific,
-    );
-    if (list.length == 1) {
-      // Only one chat waiting: jump straight into it, as in the UX flow.
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(conversationId: list.first.id),
-        ),
-      );
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => StaffConversationListScreen(
-          title: specific ? 'ส่วนตัว · $subtopic' : 'ส่วนรวม · $subtopic',
-          categoryId: category.id,
-          subtopic: subtopic,
-          specific: specific,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(category.title)),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          int count(bool s) => store
-              .staffConversations(
-                categoryId: category.id,
-                subtopic: subtopic,
-                specific: s,
-              )
-              .length;
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              StepHeader(title: subtopic, caption: 'เลือกกล่องข้อความ'),
-              OrangeCard(
-                title: 'ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)',
-                subtitle: 'ส่วนรวม · ${count(false)} การสนทนา',
-                icon: Icons.groups_rounded,
-                badge: store.staffUnread(
-                  categoryId: category.id,
-                  subtopic: subtopic,
-                  specific: false,
-                ),
-                onTap: () => _open(context, false),
-              ),
-              OrangeCard(
-                title: 'ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
-                subtitle: 'ส่วนตัว (ส่งถึงฉัน) · ${count(true)} การสนทนา',
-                icon: Icons.lock_person_rounded,
-                badge: store.staffUnread(
-                  categoryId: category.id,
-                  subtopic: subtopic,
-                  specific: true,
-                ),
-                onTap: () => _open(context, true),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class StaffConversationListScreen extends StatelessWidget {
-  const StaffConversationListScreen({
+/// รายการแชทของเจ้าหน้าที่ เรียงลงมา พร้อมปุ่มกรอง ทั้งหมด / ส่วนรวม / ส่วนตัว
+/// - [closed] = false: แชทที่ยังคุยอยู่ (แท็บ “ข้อความ”) เร่งด่วน/ยังไม่อ่านขึ้นก่อน
+/// - [closed] = true: ประวัติแชทที่จบแล้ว (จากการ์ดบนหน้าแรก) จบล่าสุดขึ้นก่อน
+class StaffConversationsScreen extends StatefulWidget {
+  const StaffConversationsScreen({
     super.key,
     required this.title,
+    required this.closed,
     this.categoryId,
-    this.subtopic,
-    this.specific,
   });
   final String title;
+  final bool closed;
   final String? categoryId;
-  final String? subtopic;
-  final bool? specific;
+
+  @override
+  State<StaffConversationsScreen> createState() =>
+      _StaffConversationsScreenState();
+}
+
+class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
+  bool? _specific; // null = ทั้งหมด, false = ส่วนรวม, true = ส่วนตัว
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: _ConversationList(
-        categoryId: categoryId,
-        subtopic: subtopic,
-        specific: specific,
-      ),
-    );
-  }
-}
-
-class _ConversationList extends StatelessWidget {
-  const _ConversationList({this.categoryId, this.subtopic, this.specific});
-  final String? categoryId;
-  final String? subtopic;
-  final bool? specific;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final list = store.staffConversations(
-          categoryId: categoryId,
-          subtopic: subtopic,
-          specific: specific,
-        );
-        if (list.isEmpty) {
-          return const Center(
-            child: Text(
-              'ยังไม่มีข้อความในหมวดนี้',
-              style: TextStyle(color: AppColors.muted),
-            ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Divider(height: 1, indent: 84),
-          itemBuilder: (_, i) =>
-              ConversationTile(conv: list[i], forStaff: true),
-        );
-      },
-    );
-  }
-}
-
-class StaffInboxScreen extends StatefulWidget {
-  const StaffInboxScreen({super.key});
-
-  @override
-  State<StaffInboxScreen> createState() => _StaffInboxScreenState();
-}
-
-class _StaffInboxScreenState extends State<StaffInboxScreen> {
-  bool? _specific;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('ข้อความทั้งหมด')),
+      appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
           Padding(
@@ -420,87 +306,59 @@ class _StaffInboxScreenState extends State<StaffInboxScreen> {
               onSelectionChanged: (s) => setState(() => _specific = s.first),
             ),
           ),
-          Expanded(child: _ConversationList(specific: _specific)),
+          Expanded(
+            child: ListenableBuilder(
+              listenable: store,
+              builder: (context, _) {
+                final list = store.staffConversations(
+                  categoryId: widget.categoryId,
+                  specific: _specific,
+                  closed: widget.closed,
+                );
+                if (list.isEmpty) {
+                  return Center(
+                    child: Text(
+                      widget.closed
+                          ? 'ยังไม่มีประวัติการปรึกษา'
+                          : 'ยังไม่มีแชทที่รอคุย',
+                      style: const TextStyle(color: AppColors.muted),
+                    ),
+                  );
+                }
+                // เส้นคั่นแต่ละแถว: สีเข้มเต็มความกว้าง แบบเดียวกับขอบปุ่มกรองด้านบน
+                // มีเส้นบนแถวแรกและใต้แถวสุดท้ายด้วย
+                final line = Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Theme.of(context).colorScheme.outline,
+                );
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: list.length,
+                  separatorBuilder: (_, _) => line,
+                  itemBuilder: (_, i) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (i == 0) line,
+                      ConversationTile(conv: list[i], forStaff: true),
+                      if (i == list.length - 1) line,
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class ReportsScreen extends StatelessWidget {
-  const ReportsScreen({super.key});
+/// แท็บ “ข้อความ”: แชทที่ยังไม่จบทั้งหมดที่เจ้าหน้าที่เห็นได้
+class StaffInboxScreen extends StatelessWidget {
+  const StaffInboxScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('ระบบรายงาน')),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          final list = store.reports;
-          if (list.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text(
-                  'ยังไม่มีรายงาน\nกดปุ่ม !! สีแดงมุมขวาบนในห้องแชท เพื่อรายงานการสนทนา',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.muted),
-                ),
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: list.length,
-            itemBuilder: (context, i) {
-              final r = list[i];
-              final conv = store.conversation(r.conversationId);
-              final student = store.user(conv.studentId);
-              final reporter = store.user(r.reporterId);
-              return Card(
-                color: Colors.white,
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: AppColors.alert.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(14),
-                  leading: const Text(
-                    '!!',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.alert,
-                    ),
-                  ),
-                  title: Text(
-                    r.reason,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: Text(
-                    'นักศึกษา: ${student.name}\n'
-                    'เรื่อง: ${MockStore.category(conv.categoryId).title} · ${conv.subtopic}\n'
-                    'รายงานโดย ${reporter.displayName} · ${timeLabel(r.time)}'
-                    '${r.detail.isNotEmpty ? '\nรายละเอียด: ${r.detail}' : ''}',
-                  ),
-                  isThreeLine: true,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatScreen(conversationId: conv.id),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const StaffConversationsScreen(title: 'ข้อความ', closed: false);
 }

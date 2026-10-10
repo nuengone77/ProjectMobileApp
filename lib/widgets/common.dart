@@ -1,10 +1,15 @@
+// Widget ที่ใช้ซ้ำหลายหน้า: การ์ดเมนูสีพีช, กระดิ่งแจ้งเตือน, รูปโปรไฟล์,
+// หัวข้อของแต่ละขั้นตอน และฟังก์ชันแสดงเวลา
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import '../theme.dart';
 
-/// The orange menu card used on every selection screen in the UX file.
-/// When [badge] > 0 it shows the bell + red dot used for staff notifications.
+/// การ์ดเมนูสีพีชที่ใช้ในทุกหน้าเลือก (หมวด / เรื่อง / รูปแบบการปรึกษา / เลือกพี่)
+/// - ใส่ [icon] หรือ [leading] (เช่นรูปเจ้าหน้าที่) ได้ทางซ้าย
+///   ถ้าไม่ใส่ทั้งคู่ ข้อความจะจัดกึ่งกลางเหมือนในไฟล์ UX/UI
+/// - [badge] > 0 จะแสดงกระดิ่ง + ตัวเลขสีแดงที่มุมขวาบน (แจ้งเตือนฝั่งเจ้าหน้าที่)
+/// - ไม่ใส่ [onTap] = กดไม่ได้ และจะไม่มีลูกศร >
 class OrangeCard extends StatelessWidget {
   const OrangeCard({
     super.key,
@@ -14,6 +19,7 @@ class OrangeCard extends StatelessWidget {
     this.leading,
     this.badge = 0,
     this.onTap,
+    this.color,
   });
 
   final String title;
@@ -23,6 +29,9 @@ class OrangeCard extends StatelessWidget {
   final int badge;
   final VoidCallback? onTap;
 
+  /// สีพื้นการ์ด (ไม่ใส่ = สีพีชปกติ) เช่น หัวข้อเร่งด่วนใช้สีแดงอ่อน
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -31,7 +40,7 @@ class OrangeCard extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Material(
-            color: AppColors.orange,
+            color: color ?? AppColors.peach,
             borderRadius: BorderRadius.circular(16),
             elevation: 0,
             child: InkWell(
@@ -112,6 +121,8 @@ class OrangeCard extends StatelessWidget {
   }
 }
 
+/// กระดิ่งแจ้งเตือน + วงกลมแดงแสดงจำนวนข้อความที่ยังไม่อ่าน
+/// มีแอนิเมชันเด้งตอนปรากฏ
 class BellBadge extends StatelessWidget {
   const BellBadge({super.key, required this.count});
   final int count;
@@ -166,16 +177,12 @@ class BellBadge extends StatelessWidget {
   }
 }
 
+/// รูปโปรไฟล์วงกลม
+/// เจ้าหน้าที่ = 👩🏻‍💼 (emoji แทนรูปจริงใน prototype), นักศึกษา = รูปแมวไข่หวาน
 class StaffAvatar extends StatelessWidget {
-  const StaffAvatar({
-    super.key,
-    required this.user,
-    this.size = 48,
-    this.showOnline = false,
-  });
+  const StaffAvatar({super.key, required this.user, this.size = 48});
   final AppUser user;
   final double size;
-  final bool showOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -189,30 +196,25 @@ class StaffAvatar extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          child: Text(
-            user.isStaff ? '👩🏻‍💼' : '🧑‍🎓',
-            style: TextStyle(fontSize: size * 0.55),
-          ),
+          // นักศึกษา (ผู้มาปรึกษา) ใช้รูปแมวไข่หวานทั้งหมด, เจ้าหน้าที่ใช้ emoji
+          child: user.isStaff
+              ? Text('👩🏻‍💼', style: TextStyle(fontSize: size * 0.55))
+              : ClipOval(
+                  child: Image.asset(
+                    kaiwanCatImage,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0, -0.25),
+                  ),
+                ),
         ),
-        if (showOnline)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: size * 0.28,
-              height: size * 0.28,
-              decoration: BoxDecoration(
-                color: user.online ? const Color(0xFF43C463) : Colors.grey,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-            ),
-          ),
       ],
     );
   }
 }
 
+/// หัวข้อใหญ่ + คำอธิบายเล็กด้านบนของหน้าเลือก เช่น “ขั้นที่ 1 จาก 2”
 class StepHeader extends StatelessWidget {
   const StepHeader({super.key, required this.title, this.caption});
   final String title;
@@ -246,6 +248,7 @@ class StepHeader extends StatelessWidget {
   }
 }
 
+/// แปลงเวลาเป็นข้อความ: วันนี้แสดงแค่ “14:05”, วันอื่นแสดง “7/10 14:05”
 String timeLabel(DateTime t) {
   final now = DateTime.now();
   final hm =
@@ -253,3 +256,88 @@ String timeLabel(DateTime t) {
   if (now.difference(t).inHours < 24 && now.day == t.day) return hm;
   return '${t.day}/${t.month} $hm';
 }
+
+const _thaiDays = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'];
+const _thaiMonths = [
+  'ม.ค.',
+  'ก.พ.',
+  'มี.ค.',
+  'เม.ย.',
+  'พ.ค.',
+  'มิ.ย.',
+  'ก.ค.',
+  'ส.ค.',
+  'ก.ย.',
+  'ต.ค.',
+  'พ.ย.',
+  'ธ.ค.',
+];
+
+/// วันที่แบบไทย (ปี พ.ศ.) เช่น “ศ. 9 ต.ค. 2569”
+String thaiDate(DateTime d) =>
+    '${_thaiDays[d.weekday - 1]} ${d.day} ${_thaiMonths[d.month - 1]} ${d.year + 543}';
+
+/// ช่วงเวลานัด 30 นาที เช่น “10:00–10:30”
+String timeRange(DateTime start) {
+  String hm(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  return '${hm(start)}–${hm(start.add(const Duration(minutes: 30)))}';
+}
+
+/// รูปแมวไข่หวาน (หน้าสมัครสมาชิก, License Agreement, รูปของแชทรวมเจ้าหน้าที่)
+const kaiwanCatImage = 'assets/images/kaiwan_cat.png';
+
+/// รูปแมวไข่หวานในกรอบวงกลม (ครอปให้ตัวแมวอยู่กลาง)
+class CatAvatar extends StatelessWidget {
+  const CatAvatar({super.key, this.size = 96});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.caramel.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: Image.asset(
+          kaiwanCatImage,
+          fit: BoxFit.cover,
+          // รูปต้นฉบับแมวอยู่ค่อนไปทางบน เลื่อนจุดกึ่งกลางขึ้นเล็กน้อย
+          alignment: const Alignment(0, -0.25),
+        ),
+      ),
+    );
+  }
+}
+
+const _thaiMonthsFull = [
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
+];
+
+/// เดือนและปีแบบไทย (พ.ศ.) เช่น “ตุลาคม 2569”
+String thaiMonthYear(DateTime d) =>
+    '${_thaiMonthsFull[d.month - 1]} ${d.year + 543}';
+
+/// วันที่แบบสั้นไม่มีชื่อวัน เช่น “9 ต.ค. 2569”
+String thaiDateShort(DateTime d) =>
+    '${d.day} ${_thaiMonths[d.month - 1]} ${d.year + 543}';
