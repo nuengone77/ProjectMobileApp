@@ -341,3 +341,25 @@ String thaiMonthYear(DateTime d) =>
 /// วันที่แบบสั้นไม่มีชื่อวัน เช่น “9 ต.ค. 2569”
 String thaiDateShort(DateTime d) =>
     '${d.day} ${_thaiMonths[d.month - 1]} ${d.year + 543}';
+
+/// สัญญาณให้โครงหลัก (StudentShell / StaffShell) สลับกลับไปแท็บแรก
+/// เพิ่มค่าเมื่อกดปุ่มกลับหน้าหลัก แล้ว Shell ที่ฟังอยู่จะตั้งแท็บเป็น 0
+final homeTabSignal = ValueNotifier<int>(0);
+
+/// ปิดทุกหน้าที่ซ้อนอยู่ แล้วกลับไปแท็บแรกของแอป
+void goHome(BuildContext context) {
+  Navigator.of(context).popUntil((r) => r.isFirst);
+  homeTabSignal.value++;
+}
+
+/// ปุ่มบ้านมุมขวาบนของ AppBar: กดแล้วกลับหน้าหลักทันที
+class HomeButton extends StatelessWidget {
+  const HomeButton({super.key});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: 'กลับหน้าหลัก',
+    icon: const Icon(Icons.home_outlined),
+    onPressed: () => goHome(context),
+  );
+}

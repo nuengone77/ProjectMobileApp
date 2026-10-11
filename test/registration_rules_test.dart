@@ -35,11 +35,28 @@ void main() {
     test('ชื่ออังกฤษ / ตัวแรกนามสกุลไม่ตรง', () {
       expect(email('nanthitk67@nu.ac.th'), contains('ไม่ตรงกับชื่อภาษาอังกฤษ'));
       expect(email('nanthb67@nu.ac.th'), contains('ไม่ตรงกับชื่อภาษาอังกฤษ'));
+      expect(email('nanthit67@nu.ac.th'), contains('ไม่ตรงกับชื่อภาษาอังกฤษ'));
+    });
+
+    test('ชื่อซ้ำ: ใช้นามสกุลเพิ่มกี่ตัวก็ได้ ขอให้ตรงกับนามสกุลตามลำดับ', () {
+      String? e(String v) =>
+          email(v, name: 'PATTARANIT CHANGTHAMRONG', id: '67312222');
+      expect(e('pattaranitc67@nu.ac.th'), isNull);
+      expect(e('pattaranitch67@nu.ac.th'), isNull);
+      expect(e('pattaranitchangthamrong67@nu.ac.th'), isNull);
+      expect(e('pattaranitca67@nu.ac.th'), 'อีเมลไม่ตรงกับชื่อภาษาอังกฤษ');
+      expect(
+        e('pattaranitchangthamrongx67@nu.ac.th'),
+        'อีเมลไม่ตรงกับชื่อภาษาอังกฤษ',
+      );
     });
 
     test('เลขปีในอีเมลต้องอยู่ระหว่าง 66–69', () {
-      expect(email('nanthitb65@nu.ac.th', id: '65313318'), contains('66–69'));
-      expect(email('nanthitb70@nu.ac.th'), contains('66–69'));
+      expect(
+        email('nanthitb65@nu.ac.th', id: '65313318'),
+        'เลขปีในอีเมลไม่ถูกต้อง',
+      );
+      expect(email('nanthitb70@nu.ac.th'), 'เลขปีในอีเมลไม่ถูกต้อง');
       expect(email('nanthitb66@nu.ac.th', id: '66313318'), isNull);
       expect(email('nanthitb69@nu.ac.th', id: '69313318'), isNull);
     });
@@ -79,8 +96,14 @@ void main() {
     });
 
     test('2 ตัวแรก (ปีที่เข้าศึกษา) ต้องอยู่ระหว่าง 66–69', () {
-      expect(RegistrationRules.studentIdError('65313318'), contains('66–69'));
-      expect(RegistrationRules.studentIdError('70313318'), contains('66–69'));
+      expect(
+        RegistrationRules.studentIdError('65313318'),
+        'รหัสนิสิตไม่ถูกต้อง',
+      );
+      expect(
+        RegistrationRules.studentIdError('70313318'),
+        'รหัสนิสิตไม่ถูกต้อง',
+      );
     });
 
     test('2 ตัวถัดมาต้องเป็น 31 (คณะวิทยาศาสตร์)', () {

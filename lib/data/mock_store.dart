@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart' show DatabaseFactory;
 
 import 'app_database.dart';
+import 'attachments.dart';
 import 'models.dart';
 import 'passwords.dart';
 import 'registration_rules.dart';
@@ -85,6 +86,11 @@ class MockStore extends ChangeNotifier {
   /// รีเซ็ตข้อมูลทดลอง: ลบทุกอย่างแล้วใส่ข้อมูลตั้งต้นใหม่ (ออกจากระบบด้วย)
   void resetDemoData() {
     _db.clearAll();
+    try {
+      Attachments.clear();
+    } on StateError {
+      // ยังไม่ได้ตั้งโฟลเดอร์ไฟล์แนบ (เช่น ตอนทดสอบ) ไม่มีอะไรต้องลบ
+    }
     users.clear();
     conversations.clear();
     appointments.clear();
@@ -129,7 +135,7 @@ class MockStore extends ChangeNotifier {
   static const officeHoursText = 'จันทร์–ศุกร์ 08:30–16:30 น.';
 
   /// เบอร์ฉุกเฉินที่แจ้งอัตโนมัติในแชทเร่งด่วน (แก้เป็นเบอร์จริงได้ที่นี่)
-  static const emergencyPhone = '061xxxxxxx';
+  static const emergencyPhone = '0869369977';
   static const emergencyMessage =
       'หากฉุกเฉินโปรดโทรเบอร์นี้ทันที $emergencyPhone';
 
@@ -318,10 +324,32 @@ class MockStore extends ChangeNotifier {
 
   /// ส่งข้อความในนามผู้ที่ล็อกอินอยู่
   void send(Conversation conv, String text) {
-    final me = currentUser!;
     final t = text.trim();
     if (t.isEmpty) return;
-    conv.messages.add(Message(senderId: me.id, text: t));
+    _post(conv, Message(senderId: currentUser!.id, text: t));
+  }
+
+  /// ส่งไฟล์แนบ (รูป/ไฟล์) [file] = ชื่อไฟล์ที่คัดลอกเก็บในแอปแล้ว (Attachments.import)
+  void sendAttachment(
+    Conversation conv, {
+    required String file,
+    required String name,
+    required bool isImage,
+  }) => _post(
+    conv,
+    Message(
+      senderId: currentUser!.id,
+      text: '',
+      attachment: file,
+      attachmentName: name,
+      isImage: isImage,
+    ),
+  );
+
+  /// เพิ่มข้อความของผู้ที่ล็อกอินอยู่ลงห้อง แล้วบันทึก
+  void _post(Conversation conv, Message m) {
+    final me = currentUser!;
+    conv.messages.add(m);
     if (me.isStaff) {
       conv.staffId ??=
           me.id; // เจ้าหน้าที่คนแรกที่ตอบห้องส่วนรวม = ผู้รับเรื่อง
@@ -403,6 +431,7 @@ class MockStore extends ChangeNotifier {
   /// เรียงลำดับ: เร่งด่วนที่ยังไม่อ่าน -> ห้องอื่นที่ยังไม่อ่าน -> ห้องล่าสุด
   /// [closed]: null = ทั้งหมด, false = ยังคุยอยู่ (หน้าข้อความ), true = จบแล้ว (ประวัติ)
   /// ประวัติ (closed = true) เรียงตามเวลาที่จบ ล่าสุดขึ้นก่อน
+  /// ห้องที่นักศึกษายังไม่ได้พิมพ์อะไรเลยจะยังไม่แสดง (กันกดผิด) รวมถึงห้องเร่งด่วน
   List<Conversation> staffConversations({
     String? categoryId,
     bool? specific,
@@ -412,6 +441,7 @@ class MockStore extends ChangeNotifier {
     if (me == null) return [];
     final list = conversations.where((c) {
       if (c.isSpecific && c.staffId != me.id) return false;
+      if (!hasStudentMessage(c)) return false;
       if (categoryId != null && c.categoryId != categoryId) return false;
       if (specific != null && c.isSpecific != specific) return false;
       if (closed != null && c.closed != closed) return false;
@@ -439,6 +469,10 @@ class MockStore extends ChangeNotifier {
   }
 
   /// รวมข้อความที่ยังไม่อ่าน (เฉพาะแชทที่ยังไม่จบ) ใช้แสดงตัวเลขแจ้งเตือน
+  /// นักศึกษาพิมพ์ข้อความในห้องนี้แล้วหรือยัง (ไม่นับข้อความระบบ)
+  bool hasStudentMessage(Conversation c) =>
+      c.messages.any((m) => m.senderId == c.studentId);
+
   int staffUnread({String? categoryId, bool? specific}) => staffConversations(
     categoryId: categoryId,
     specific: specific,

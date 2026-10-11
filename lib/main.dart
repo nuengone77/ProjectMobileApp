@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'data/attachments.dart';
 import 'data/mock_store.dart';
 import 'screens/auth_screens.dart';
 import 'screens/staff_screens.dart';
@@ -17,6 +18,7 @@ import 'theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // เปิดฐานข้อมูล SQLite และโหลดข้อมูล (รวมถึงผู้ที่ล็อกอินค้างไว้) ก่อนแสดงหน้าแรก
+  await Attachments.init();
   store = await MockStore.open();
   runApp(const KaiwanApp());
 }

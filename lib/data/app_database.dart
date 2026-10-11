@@ -7,6 +7,7 @@
 //   appointments   นัดหมายที่ห้องกิจการนิสิต
 //   settings       ค่าตั้งค่า เช่น ผู้ที่ล็อกอินค้างไว้
 //   case_reports   ตารางสรุปเคสของเจ้าหน้าที่ (สำเนาแยกจากแชท แก้แล้วไม่กระทบแชท) [เวอร์ชัน 2]
+//   (เวอร์ชัน 3: messages เพิ่มคอลัมน์ไฟล์แนบ attachment / attachment_name / is_image)
 //
 // วิธีใช้ร่วมกับ MockStore: ตอนเปิดแอปโหลดทั้งหมดขึ้นหน่วยความจำ ([loadAll])
 // แล้วทุกครั้งที่ข้อมูลเปลี่ยน store จะเรียก save... ให้เขียนลงฐานข้อมูลทันที
@@ -44,15 +45,17 @@ class AppDatabase {
     final db = await f.openDatabase(
       dbPath,
       options: OpenDatabaseOptions(
-        version: 2,
+        version: 3,
         singleInstance: false,
         onCreate: (db, version) async {
           await _createTables(db);
           await _createReportTable(db);
+          await _addAttachmentColumns(db);
         },
         // เครื่องที่มีฐานข้อมูลเวอร์ชันเก่า: เพิ่มตารางใหม่โดยไม่ลบข้อมูลเดิม
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) await _createReportTable(db);
+          if (oldVersion < 3) await _addAttachmentColumns(db);
         },
       ),
     );
@@ -141,6 +144,15 @@ class AppDatabase {
         level TEXT,
         edited INTEGER NOT NULL DEFAULT 0
       )''');
+
+  /// คอลัมน์ไฟล์แนบของข้อความ [เวอร์ชัน 3]
+  static Future<void> _addAttachmentColumns(Database db) async {
+    await db.execute('ALTER TABLE messages ADD COLUMN attachment TEXT');
+    await db.execute('ALTER TABLE messages ADD COLUMN attachment_name TEXT');
+    await db.execute(
+      'ALTER TABLE messages ADD COLUMN is_image INTEGER NOT NULL DEFAULT 0',
+    );
+  }
 
   /// เพิ่มคำสั่งเขียนต่อท้ายคิว (error จะถูกพิมพ์ออก log ไม่ทำให้แอปค้าง)
   void _enqueue(Future<void> Function() op) {
@@ -316,6 +328,9 @@ class AppDatabase {
             'time': m.time.millisecondsSinceEpoch,
             'is_system': m.isSystem ? 1 : 0,
             'is_alert': m.isAlert ? 1 : 0,
+            'attachment': m.attachment,
+            'attachment_name': m.attachmentName,
+            'is_image': m.isImage ? 1 : 0,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }),
@@ -410,6 +425,9 @@ class AppDatabase {
     time: _date(r['time']),
     isSystem: r['is_system'] == 1,
     isAlert: r['is_alert'] == 1,
+    attachment: r['attachment'] as String?,
+    attachmentName: r['attachment_name'] as String?,
+    isImage: r['is_image'] == 1,
   );
 
   static DateTime _date(Object? v) =>

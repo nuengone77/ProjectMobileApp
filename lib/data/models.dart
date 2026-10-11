@@ -70,6 +70,9 @@ class Message {
     DateTime? time,
     this.isSystem = false,
     this.isAlert = false,
+    this.attachment,
+    this.attachmentName,
+    this.isImage = false,
   }) : time = time ?? DateTime.now();
 
   final String senderId;
@@ -79,6 +82,22 @@ class Message {
 
   /// ข้อความแจ้งเตือนสำคัญจากระบบ (เช่น เบอร์ฉุกเฉินในแชทเร่งด่วน) แสดงเป็นการ์ดสีแดง
   final bool isAlert;
+
+  /// ไฟล์แนบ: ชื่อไฟล์ที่เก็บในแอป (ดู Attachments) null = ข้อความธรรมดา
+  final String? attachment;
+
+  /// ชื่อไฟล์เดิมที่ผู้ใช้เห็น (เช่น ใบรับรองแพทย์.pdf)
+  final String? attachmentName;
+
+  /// ไฟล์แนบเป็นรูปภาพ (แสดงรูปในแชท) หรือไฟล์ทั่วไป
+  final bool isImage;
+
+  /// ข้อความสั้นสำหรับแสดงในรายการแชท
+  String get preview => attachment == null
+      ? text
+      : isImage
+      ? '📷 รูปภาพ'
+      : '📎 ${attachmentName ?? 'ไฟล์'}';
 }
 
 /// ระดับเคสที่เจ้าหน้าที่เลือกตอนจบการปรึกษา

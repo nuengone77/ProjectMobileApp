@@ -82,6 +82,65 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
   });
 
+  // กดเข้าแชทแบบเจาะจงแต่ยังไม่พิมพ์ -> เจ้าหน้าที่ยังไม่เห็นห้อง (กันกดผิด)
+  // ย้อนกลับจากแชท = กลับหน้าเลือกพี่, ปุ่มบ้าน = กลับหน้าแรกทันที
+  testWidgets('empty specific chat is hidden; back and home buttons', (
+    tester,
+  ) async {
+    await loginAsStudent(tester);
+    // ไปแท็บอื่นก่อน เพื่อตรวจว่าปุ่มบ้านพากลับแท็บแรก
+    await tester.tap(find.text('แชทของฉัน'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('หน้าแรก'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\nผ่านแอป'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.text('ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('พี่ไข่หวาน 3'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsOneWidget); // อยู่หน้าแชท
+
+    final conv = store.myConversations().firstWhere(
+      (c) => c.isSpecific && c.staffId == 'st3' && !c.closed,
+    );
+
+    // ย้อนกลับ -> หน้าเลือกพี่ (ไม่ใช่หน้าแรก)
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('อยากคุยกับพี่คนไหน?'), findsOneWidget);
+
+    // ปุ่มบ้าน -> หน้าแรก
+    await tester.tap(find.byTooltip('กลับหน้าหลัก'));
+    await tester.pumpAndSettle();
+    expect(find.text('ถาม/ตอบเรื่องทั่วไป'), findsOneWidget);
+    expect(find.text('อยากคุยกับพี่คนไหน?'), findsNothing);
+
+    final studentId = store.currentUser!.id;
+    store.logout();
+    store.login('chonnikank@nu.ac.th', 'kaiwanchonnikank');
+    expect(store.staffConversations().contains(conv), isFalse);
+
+    // พอนักศึกษาพิมพ์ทักแล้ว ห้องจึงขึ้นในรายการของเจ้าหน้าที่
+    store.logout();
+    store.login(
+      store.users.firstWhere((u) => u.id == studentId).email,
+      MockStore.demoPasswords[store.users
+          .firstWhere((u) => u.id == studentId)
+          .email]!,
+    );
+    store.send(conv, 'สวัสดีค่ะ');
+    store.logout();
+    store.login('chonnikank@nu.ac.th', 'kaiwanchonnikank');
+    expect(store.staffConversations().contains(conv), isTrue);
+    store.logout();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+  });
+
   // เร่งด่วน: กดแล้วเข้าแชททันที และเจ้าหน้าที่ทุกคนเห็น โดยขึ้นเป็นอันดับแรก
   testWidgets('urgent topic: straight to chat, every staff sees it', (
     tester,
@@ -94,6 +153,20 @@ void main() {
     // แชทส่วนรวม: นักศึกษาเห็นชื่อ “แชทรวมเจ้าหน้าที่” + รูปแมวไข่หวาน
     expect(find.text('แชทรวมเจ้าหน้าที่'), findsOneWidget);
     expect(find.byType(CatAvatar), findsOneWidget);
+
+    // ยังไม่พิมพ์ทัก -> เจ้าหน้าที่ยังไม่เห็นห้องเร่งด่วนนี้
+    final urgent = store.myConversations().firstWhere(
+      (c) => c.categoryId == 'urgent' && !c.closed,
+    );
+    store.logout();
+    store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    expect(store.staffConversations().contains(urgent), isFalse);
+    store.logout();
+    store.login(
+      'somjaij67@nu.ac.th',
+      MockStore.demoPasswords['somjaij67@nu.ac.th']!,
+    );
+
     await tester.enterText(find.byType(TextField), 'ต้องการความช่วยเหลือด่วน');
     await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump(const Duration(seconds: 1));
@@ -288,15 +361,18 @@ void main() {
     await tester.ensureVisible(signIn);
     await tester.tap(signIn);
     await tester.pumpAndSettle();
-    expect(find.text('License Agreement'), findsOneWidget);
+    expect(
+      find.text('ขอความยินยอมในการเข้าถึงข้อมูลและนโยบายความเป็นส่วนตัว'),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.text('Reject'));
+    await tester.tap(find.text('ปฏิเสธ'));
     await tester.pumpAndSettle();
     expect(store.currentUser, isNull);
 
     await tester.tap(signIn);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Accept Terms'));
+    await tester.tap(find.text('ยอมรับและดำเนินการต่อ'));
     await tester.pumpAndSettle();
     final me = store.currentUser!;
     expect(me.email, 'mait67@nu.ac.th');
@@ -332,8 +408,8 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Terms and Conditions'), findsOneWidget);
-    expect(find.text('Accept Terms'), findsOneWidget);
+    expect(find.text('ส่วนเนื้อหาการขออนุญาตมีดังนี้'), findsOneWidget);
+    expect(find.text('ยอมรับและดำเนินการต่อ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   // นักศึกษายกเลิกนัดที่พี่เสนอเวลาใหม่ (ยังไม่ยืนยัน) ได้ โดยต้องกดยืนยันก่อน
@@ -395,6 +471,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await loginWithDemo(tester, 'จนท. 1');
+    // ล็อกอินแล้วเปิดแท็บข้อความก่อน -> ไปแท็บภาพรวม
+    expect(find.text('ภาพรวม'), findsOneWidget);
+    await tester.tap(find.text('ภาพรวม'));
+    await tester.pumpAndSettle();
     final card = find.text('ตารางสรุปเคส');
     await tester.ensureVisible(card);
     await tester.tap(card);

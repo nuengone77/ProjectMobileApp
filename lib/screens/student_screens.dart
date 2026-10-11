@@ -32,6 +32,20 @@ class _StudentShellState extends State<StudentShell> {
   int _tab = 0;
 
   @override
+  void initState() {
+    super.initState();
+    homeTabSignal.addListener(_goFirstTab);
+  }
+
+  @override
+  void dispose() {
+    homeTabSignal.removeListener(_goFirstTab);
+    super.dispose();
+  }
+
+  void _goFirstTab() => setState(() => _tab = 0);
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: store,
@@ -202,7 +216,10 @@ class ConsultChannelScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(category.title)),
+      appBar: AppBar(
+        title: Text(category.title),
+        actions: const [HomeButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -261,6 +278,7 @@ class ConsultModeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(inPerson ? 'นัดที่ห้องกิจการนิสิต' : category.title),
+        actions: const [HomeButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -320,7 +338,10 @@ class StaffPickerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('เลือกพี่ไข่หวาน')),
+      appBar: AppBar(
+        title: const Text('เลือกพี่ไข่หวาน'),
+        actions: const [HomeButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -351,7 +372,8 @@ class StaffPickerScreen extends StatelessWidget {
 }
 
 /// สร้าง/เปิดห้องแชท แล้วพาเข้าหน้าแชททันที
-/// ปิดหน้าเลือกต่างๆ ที่ซ้อนอยู่ก่อน เพื่อให้กดย้อนกลับจากแชทแล้วกลับหน้าแรกเลย
+/// ซ้อนต่อจากหน้าเลือก: กดย้อนกลับจากแชทจะกลับไปหน้าที่ผ่านมา
+/// (ถ้าจะกลับหน้าหลักเลย ใช้ปุ่มบ้านมุมขวาบน)
 void openChat(
   BuildContext context, {
   required ConsultCategory category,
@@ -361,7 +383,6 @@ void openChat(
     categoryId: category.id,
     staffId: staffId,
   );
-  Navigator.of(context).popUntil((r) => r.isFirst);
   Navigator.of(context).push(
     MaterialPageRoute(builder: (_) => ChatScreen(conversationId: conv.id)),
   );
@@ -480,7 +501,7 @@ class ConversationTile extends StatelessWidget {
             )
           else if (last != null)
             Text(
-              last.text,
+              last.isAlert ? MockStore.emergencyMessage : last.preview,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

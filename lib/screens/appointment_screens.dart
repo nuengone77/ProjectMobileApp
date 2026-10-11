@@ -114,7 +114,10 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return Scaffold(
-      appBar: AppBar(title: const Text('นัดหมายที่ห้องกิจการนิสิต')),
+      appBar: AppBar(
+        title: const Text('นัดหมายที่ห้องกิจการนิสิต'),
+        actions: const [HomeButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [

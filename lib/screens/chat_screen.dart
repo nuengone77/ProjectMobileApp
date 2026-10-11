@@ -1,7 +1,15 @@
 // หน้าแชท ใช้ร่วมกันทั้งนักศึกษาและเจ้าหน้าที่
 // บับเบิลฟ้า = ข้อความฝั่งเรา, บับเบิลเทา = อีกฝั่ง (ตามไฟล์ UX/UI)
-import 'package:flutter/material.dart';
+import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../data/attachments.dart';
 import '../data/mock_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
@@ -67,6 +75,96 @@ class _ChatScreenState extends State<ChatScreen> {
     store.send(conv, _input.text);
     _input.clear();
   }
+
+  /// ปุ่มแนบ: เลือกได้ 3 แบบ คลังรูป (หลายรูป) / ถ่ายรูป / ไฟล์ (หลายไฟล์)
+  Future<void> _attach() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (value, icon, label) in const [
+              ('gallery', Icons.photo_library_outlined, 'เลือกรูปจากคลังรูป'),
+              ('camera', Icons.photo_camera_outlined, 'ถ่ายรูป'),
+              ('file', Icons.attach_file, 'แนบไฟล์'),
+            ])
+              ListTile(
+                leading: Icon(icon, color: AppColors.caramel),
+                title: Text(label),
+                onTap: () => Navigator.pop(context, value),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) =>
+        messenger.showSnackBar(SnackBar(content: Text(text)));
+
+    // (path ของไฟล์ที่เลือก, ชื่อที่แสดง, เป็นรูปไหม)
+    final picked = <(String, String, bool)>[];
+    try {
+      // ย่อรูปให้ยาวสุด 1600px เพื่อไม่ให้แชทกินพื้นที่เครื่อง
+      final picker = ImagePicker();
+      switch (choice) {
+        case 'gallery':
+          for (final x in await picker.pickMultiImage(
+            maxWidth: 1600,
+            imageQuality: 85,
+          )) {
+            picked.add((x.path, x.name, true));
+          }
+        case 'camera':
+          final x = await picker.pickImage(
+            source: ImageSource.camera,
+            maxWidth: 1600,
+            imageQuality: 85,
+          );
+          if (x != null) picked.add((x.path, x.name, true));
+        case 'file':
+          for (final f in await FilePicker.pickFiles()) {
+            if (f.path == null) continue;
+            final size = f.lengthSync() ?? await f.length() ?? 0;
+            if (size > Attachments.maxBytes) {
+              say(
+                '${f.name} ใหญ่เกิน '
+                '${Attachments.sizeText(Attachments.maxBytes)}',
+              );
+              continue;
+            }
+            picked.add((f.path!, f.name, _isImageName(f.name)));
+          }
+      }
+    } catch (e) {
+      // เช่น iOS Simulator ไม่มีกล้อง หรือผู้ใช้ไม่อนุญาตให้เข้าถึงรูป
+      say(
+        choice == 'camera'
+            ? 'เปิดกล้องไม่ได้ (Simulator ไม่มีกล้อง ต้องลองบนเครื่องจริง)'
+            : 'เลือกไฟล์ไม่สำเร็จ: $e',
+      );
+      return;
+    }
+    for (final (path, name, isImage) in picked) {
+      final file = await Attachments.import(path);
+      if (!mounted) return;
+      store.sendAttachment(conv, file: file, name: name, isImage: isImage);
+    }
+  }
+
+  static bool _isImageName(String name) => const {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.heic',
+  }.contains(p.extension(name).toLowerCase());
 
   /// ถามยืนยันก่อนจบการปรึกษา
   /// เปิดฟอร์มสรุปการปรึกษา (เจ้าหน้าที่) คืนค่า (เรื่องที่ปรึกษา, ช่วยอะไรได้บ้าง)
@@ -196,6 +294,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   icon: const Icon(Icons.badge_outlined),
                   onPressed: () => showStudentProfile(context, other),
                 ),
+              // ปุ่มกลับหน้าหลัก อยู่ข้างปุ่ม 3 จุด (ปุ่ม 3 จุดอยู่ขวาสุด)
+              const HomeButton(),
               if (!c.closed)
                 PopupMenuButton<String>(
                   onSelected: (v) => v == 'close' ? _close() : null,
@@ -217,7 +317,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: msgs.length,
                   itemBuilder: (context, i) {
                     final m = msgs[i];
-                    if (m.isAlert) return _AlertNote(text: m.text);
+                    // แสดงเบอร์ฉุกเฉินจากค่าปัจจุบันเสมอ (ไม่ใช้ข้อความที่บันทึกไว้ตอนเปิดห้อง)
+                    // แก้ emergencyPhone แล้วห้องเก่าก็แสดงเบอร์ใหม่ด้วย
+                    if (m.isAlert) {
+                      return const _AlertNote(text: MockStore.emergencyMessage);
+                    }
                     if (m.isSystem) return _SystemNote(text: m.text);
                     final mine =
                         m.senderId == me.id ||
@@ -249,7 +353,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 )
               else
-                _Composer(controller: _input, onSend: _send),
+                _Composer(controller: _input, onSend: _send, onAttach: _attach),
             ],
           ),
         );
@@ -323,7 +427,20 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubble = Container(
+    final bubble = message.attachment == null
+        ? _textBubble(context)
+        : message.isImage
+        ? _ImageAttachment(message: message)
+        : _FileAttachment(message: message, mine: mine);
+    final time = Text(
+      timeLabel(message.time),
+      style: const TextStyle(fontSize: 10, color: AppColors.muted),
+    );
+    return _layout(bubble, time);
+  }
+
+  Widget _textBubble(BuildContext context) {
+    return Container(
       constraints: BoxConstraints(
         maxWidth: MediaQuery.sizeOf(context).width * 0.72,
       ),
@@ -346,10 +463,9 @@ class _Bubble extends StatelessWidget {
         ),
       ),
     );
-    final time = Text(
-      timeLabel(message.time),
-      style: const TextStyle(fontSize: 10, color: AppColors.muted),
-    );
+  }
+
+  Widget _layout(Widget bubble, Widget time) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
@@ -386,36 +502,212 @@ class _Bubble extends StatelessWidget {
   }
 }
 
+/// รูปที่แนบในแชท: แสดงรูปย่อ แตะเพื่อดูเต็มจอ
+class _ImageAttachment extends StatelessWidget {
+  const _ImageAttachment({required this.message});
+  final Message message;
+
+  @override
+  Widget build(BuildContext context) {
+    final file = File(Attachments.pathOf(message.attachment!));
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              _ImageViewer(file: file, name: message.attachmentName),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.file(
+          file,
+          width: 200,
+          height: 200,
+          fit: BoxFit.cover,
+          cacheWidth: 400,
+          errorBuilder: (_, _, _) => Container(
+            width: 200,
+            height: 120,
+            color: AppColors.bubbleOther,
+            alignment: Alignment.center,
+            child: const Text(
+              'ไม่พบรูปในเครื่องนี้',
+              style: TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ดูรูปเต็มจอ ซูม/เลื่อนได้ และปุ่มแชร์/บันทึก
+class _ImageViewer extends StatelessWidget {
+  const _ImageViewer({required this.file, this.name});
+  final File file;
+  final String? name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'แชร์/บันทึกรูป',
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => _shareFile(context, file),
+          ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(maxScale: 5, child: Image.file(file)),
+      ),
+    );
+  }
+}
+
+/// ไฟล์ที่แนบในแชท: ไอคอน + ชื่อไฟล์ + ขนาด แตะเพื่อเปิด/แชร์
+class _FileAttachment extends StatelessWidget {
+  const _FileAttachment({required this.message, required this.mine});
+  final Message message;
+  final bool mine;
+
+  @override
+  Widget build(BuildContext context) {
+    final file = File(Attachments.pathOf(message.attachment!));
+    final exists = file.existsSync();
+    final fg = mine ? Colors.white : AppColors.ink;
+    return Material(
+      color: mine ? AppColors.caramel : AppColors.bubbleOther,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: exists ? () => _shareFile(context, file) : null,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * 0.72,
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.insert_drive_file_outlined, color: fg, size: 30),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message.attachmentName ?? 'ไฟล์',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: fg, fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      exists
+                          ? '${Attachments.sizeText(file.lengthSync())} · แตะเพื่อเปิด'
+                          : 'ไม่พบไฟล์ในเครื่องนี้',
+                      style: TextStyle(
+                        color: fg.withValues(alpha: 0.75),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// เปิดเมนูแชร์ของระบบ (ดูตัวอย่างไฟล์ / บันทึกลง Files / ส่งต่อแอปอื่น)
+Future<void> _shareFile(BuildContext context, File file) async {
+  final box = context.findRenderObject() as RenderBox?;
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [XFile(file.path)],
+      sharePositionOrigin: box == null
+          ? null
+          : box.localToGlobal(Offset.zero) & box.size,
+    ),
+  );
+}
+
 /// การ์ดแจ้งเตือนสำคัญสีแดงกลางแชท (เช่น เบอร์ฉุกเฉินในแชทเร่งด่วน)
 class _AlertNote extends StatelessWidget {
   const _AlertNote({required this.text});
   final String text;
 
+  /// แตะการ์ด -> เปิดหน้าโทรออกพร้อมเบอร์ฉุกเฉิน (ผู้ใช้กดโทรเองอีกที)
+  /// iOS Simulator ไม่มีแอปโทรศัพท์ จึงโทรไม่ได้ จะขึ้นข้อความแจ้งแทน
+  Future<void> _call(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    var ok = false;
+    try {
+      ok = await launchUrl(Uri(scheme: 'tel', path: MockStore.emergencyPhone));
+    } catch (_) {}
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'อุปกรณ์นี้โทรออกไม่ได้ กรุณาโทร ${MockStore.emergencyPhone}',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+    final radius = BorderRadius.circular(16);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      child: Material(
         color: AppColors.urgentSoft,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.alert.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.phone_in_talk_rounded, color: AppColors.alert),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: AppColors.alert,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-              ),
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(color: AppColors.alert.withValues(alpha: 0.4)),
+        ),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: () => _call(context),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                const Icon(Icons.phone_in_talk_rounded, color: AppColors.alert),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        text,
+                        style: const TextStyle(
+                          color: AppColors.alert,
+                          fontWeight: FontWeight.w700,
+                          height: 1.4,
+                        ),
+                      ),
+                      const Text(
+                        'แตะเพื่อโทร',
+                        style: TextStyle(fontSize: 12, color: AppColors.alert),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.alert),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -450,9 +742,14 @@ class _SystemNote extends StatelessWidget {
 
 /// แถบพิมพ์ข้อความด้านล่าง: ปุ่มแนบรูป (ยังไม่เปิดใช้), ช่องพิมพ์, ปุ่มส่ง
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.onSend});
+  const _Composer({
+    required this.controller,
+    required this.onSend,
+    required this.onAttach,
+  });
   final TextEditingController controller;
   final VoidCallback onSend;
+  final VoidCallback onAttach;
 
   @override
   Widget build(BuildContext context) {
@@ -467,11 +764,8 @@ class _Composer extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('แนบไฟล์/รูปภาพ (ต้นแบบ - ยังไม่เปิดใช้งาน)'),
-                ),
-              ),
+              tooltip: 'แนบรูป/ไฟล์',
+              onPressed: onAttach,
               icon: const Icon(
                 Icons.add_photo_alternate_outlined,
                 color: AppColors.muted,

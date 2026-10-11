@@ -7,7 +7,10 @@
 //
 // กติกา:
 //   - อีเมลต้องเป็นอีเมลมหาลัย ลงท้ายด้วย @nu.ac.th
-//   - อีเมล = ชื่อภาษาอังกฤษ + ตัวแรกของนามสกุลอังกฤษ + เลขปี 2 หลัก (66–69)
+//   - อีเมล = ชื่อภาษาอังกฤษ + ตัวต้นของนามสกุลอังกฤษ + เลขปี 2 หลัก (66–69)
+//     ปกติใช้นามสกุลตัวแรกตัวเดียว ถ้าชื่อซ้ำกับคนอื่นจะใช้นามสกุลเพิ่มทีละตัว
+//     (เช่น pattaranitc67, pattaranitch67) จึงยอมรับนามสกุลกี่ตัวก็ได้ (อย่างน้อย 1)
+//     ขอแค่ตรงกับตัวต้นของนามสกุลตามลำดับ
 //     และเลขปีต้องตรงกับ 2 ตัวแรกของรหัสนิสิต
 //   - รหัสนิสิต 8 หลัก: 2 ตัวแรก = ปีที่เข้าศึกษา (66–69), 2 ตัวถัดมา = คณะ ต้องเป็น 31 (วิทยาศาสตร์)
 //   - ตัวอักษรภาษาอังกฤษแปลงเป็นตัวพิมพ์เล็กก่อนตรวจทุกครั้ง
@@ -29,7 +32,7 @@ class RegistrationRules {
     }
     final year = int.parse(id.substring(0, 2));
     if (year < minYear || year > maxYear) {
-      return 'จำกัดให้ใช้แค่ปีการศึกษาแค่ 66-69 เท่านั้น';
+      return 'รหัสนิสิตไม่ถูกต้อง';
     }
     if (id.substring(2, 4) != scienceFacultyCode) {
       return 'แอปนี้ใช้ได้เฉพาะนิสิตคณะวิทยาศาสตร์';
@@ -89,8 +92,11 @@ class RegistrationRules {
     }
     final name = parseNameEn(nameEn);
     if (name != null) {
-      final expected = '${name.first}${name.last[0]}';
-      if (letters != expected) {
+      // ต้องขึ้นต้นด้วยชื่อ แล้วตามด้วยตัวต้นของนามสกุลอย่างน้อย 1 ตัว
+      final surnamePart = letters.startsWith(name.first)
+          ? letters.substring(name.first.length)
+          : '';
+      if (surnamePart.isEmpty || !name.last.startsWith(surnamePart)) {
         return 'อีเมลไม่ตรงกับชื่อภาษาอังกฤษ';
       }
     }

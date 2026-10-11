@@ -17,7 +17,7 @@ import 'report_screen.dart';
 import 'student_screens.dart' show ConversationTile;
 
 /// โครงหลักฝั่งเจ้าหน้าที่: แถบเมนูล่าง 4 แท็บ
-/// (ภาพรวม / ข้อความ / นัดหมาย / โปรไฟล์)
+/// (ข้อความ / นัดหมาย / ภาพรวม / โปรไฟล์) ล็อกอินแล้วเห็นแท็บข้อความก่อน
 /// พร้อม badge ข้อความที่ยังไม่อ่าน และคำขอนัดที่รอยืนยัน
 class StaffShell extends StatefulWidget {
   const StaffShell({super.key});
@@ -30,6 +30,20 @@ class _StaffShellState extends State<StaffShell> {
   int _tab = 0;
 
   @override
+  void initState() {
+    super.initState();
+    homeTabSignal.addListener(_goFirstTab);
+  }
+
+  @override
+  void dispose() {
+    homeTabSignal.removeListener(_goFirstTab);
+    super.dispose();
+  }
+
+  void _goFirstTab() => setState(() => _tab = 0);
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: store,
@@ -40,9 +54,9 @@ class _StaffShellState extends State<StaffShell> {
           body: IndexedStack(
             index: _tab,
             children: const [
-              StaffHome(),
               StaffInboxScreen(),
               StaffAppointmentsScreen(),
+              StaffHome(),
               ProfileScreen(),
             ],
           ),
@@ -52,11 +66,6 @@ class _StaffShellState extends State<StaffShell> {
             indicatorColor: AppColors.honey,
             onDestinationSelected: (i) => setState(() => _tab = i),
             destinations: [
-              const NavigationDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: 'ภาพรวม',
-              ),
               NavigationDestination(
                 icon: Badge(
                   isLabelVisible: unread > 0,
@@ -84,6 +93,11 @@ class _StaffShellState extends State<StaffShell> {
                 label: 'นัดหมาย',
               ),
               const NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard),
+                label: 'ภาพรวม',
+              ),
+              const NavigationDestination(
                 icon: Icon(Icons.person_outline),
                 selectedIcon: Icon(Icons.person),
                 label: 'โปรไฟล์',
@@ -96,7 +110,7 @@ class _StaffShellState extends State<StaffShell> {
   }
 }
 
-/// หน้าแรกเจ้าหน้าที่: ข้อมูลตัวเอง, ตัวเลขสรุป และการ์ดประวัติการปรึกษาแยกหัวข้อ
+/// แท็บภาพรวมของเจ้าหน้าที่: ข้อมูลตัวเอง, ตัวเลขสรุป และการ์ดประวัติการปรึกษาแยกหัวข้อ
 /// (นัดหมายดูที่แท็บ “นัดหมาย”)
 class StaffHome extends StatelessWidget {
   const StaffHome({super.key});
@@ -289,30 +303,35 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // หัวข้อเร่งด่วนเป็นแชทรวมเสมอ ไม่ต้องมีตัวกรองส่วนรวม/ส่วนตัว
+    final showFilter =
+        widget.categoryId == null ||
+        !MockStore.category(widget.categoryId!).urgent;
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: SegmentedButton<bool?>(
-              segments: const [
-                ButtonSegment(value: null, label: Text('ทั้งหมด')),
-                ButtonSegment(value: false, label: Text('ส่วนรวม')),
-                ButtonSegment(value: true, label: Text('ส่วนตัว')),
-              ],
-              selected: {_specific},
-              showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _specific = s.first),
+          if (showFilter)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SegmentedButton<bool?>(
+                segments: const [
+                  ButtonSegment(value: null, label: Text('ทั้งหมด')),
+                  ButtonSegment(value: false, label: Text('ส่วนรวม')),
+                  ButtonSegment(value: true, label: Text('ส่วนตัว')),
+                ],
+                selected: {_specific},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) => setState(() => _specific = s.first),
+              ),
             ),
-          ),
           Expanded(
             child: ListenableBuilder(
               listenable: store,
               builder: (context, _) {
                 final list = store.staffConversations(
                   categoryId: widget.categoryId,
-                  specific: _specific,
+                  specific: showFilter ? _specific : null,
                   closed: widget.closed,
                 );
                 if (list.isEmpty) {

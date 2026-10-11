@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:kaiwan_chuaiduai/data/attachments.dart';
 import 'package:kaiwan_chuaiduai/data/mock_store.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/passwords.dart';
@@ -102,6 +103,44 @@ void main() {
     await s.flush();
     s = await openTestStore(path: path);
     expect(s.currentUser, isNull);
+  });
+
+  test('ไฟล์แนบ: คัดลอกเข้าแอป ส่งในแชท และยังอยู่หลังเปิดแอปใหม่', () async {
+    await Attachments.init('${dir.path}/attachments');
+    final src = File('${dir.path}/ใบรับรอง.pdf')..writeAsStringSync('pdf');
+    final img = File('${dir.path}/photo.JPG')..writeAsStringSync('img');
+
+    var s = await openTestStore(path: path);
+    s.login(
+      'somjaij67@nu.ac.th',
+      MockStore.demoPasswords['somjaij67@nu.ac.th']!,
+    );
+    final conv = s.openConversation(categoryId: 'general', staffId: 'st2');
+    final pdf = await Attachments.import(src.path);
+    final jpg = await Attachments.import(img.path);
+    expect(jpg, endsWith('.jpg'));
+    s.sendAttachment(conv, file: pdf, name: 'ใบรับรอง.pdf', isImage: false);
+    s.sendAttachment(conv, file: jpg, name: 'photo.JPG', isImage: true);
+    expect(conv.last!.preview, '📷 รูปภาพ');
+
+    // ส่งแค่ไฟล์ (ไม่พิมพ์) ก็นับว่าทักแล้ว เจ้าหน้าที่เห็นห้อง
+    s.logout();
+    s.login('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep');
+    expect(s.staffConversations().any((c) => c.id == conv.id), isTrue);
+    await s.flush();
+
+    s = await openTestStore(path: path);
+    final msgs = s.conversation(conv.id).messages;
+    final file = msgs.firstWhere((m) => m.attachment == pdf);
+    expect(file.isImage, isFalse);
+    expect(file.preview, '📎 ใบรับรอง.pdf');
+    expect(msgs.firstWhere((m) => m.attachment == jpg).isImage, isTrue);
+    expect(File(Attachments.pathOf(pdf)).readAsStringSync(), 'pdf');
+
+    // รีเซ็ตข้อมูลทดลอง -> ไฟล์แนบถูกลบด้วย
+    s.resetDemoData();
+    expect(File(Attachments.pathOf(pdf)).existsSync(), isFalse);
+    await s.flush();
   });
 
   test('รีเซ็ตข้อมูลทดลอง: กลับเป็นข้อมูลตั้งต้นและออกจากระบบ', () async {

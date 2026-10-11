@@ -6,6 +6,10 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ใช้เลือกรูปภาพเพื่อแนบในแชทปรึกษา</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ใช้ถ่ายรูปเพื่อแนบในแชทปรึกษา</string>
 	<key>CFBundleDisplayName</key>
 	<string>ไข่หวานช่วยด้วย</string>
 	<key>CFBundleExecutable</key>

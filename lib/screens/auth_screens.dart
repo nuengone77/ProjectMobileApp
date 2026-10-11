@@ -142,6 +142,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+                const Text(
+                  'แอพพลิเคชันนี้ใช้ได้เฉพาะนิสิตของคณะวิทยาศาสตร์',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
                 const SizedBox(height: 24),
                 // บัญชีทดลอง: ซ่อนไว้ กดแล้วค่อยแสดง (มีไว้เพื่อเดโมเท่านั้น)
                 TextButton.icon(
@@ -463,14 +468,73 @@ class _SignUpScreenState extends State<SignUpScreen> {
 class LicenseAgreementDialog extends StatelessWidget {
   const LicenseAgreementDialog({super.key});
 
-  /// ข้อความข้อตกลง (ข้อความตัวอย่าง แก้เป็นข้อความจริงได้ที่นี่)
-  static const terms = [
-    'ข้อมูลที่ใช้สมัคร (อีเมล รหัสนิสิต ชื่อ-สกุล เบอร์โทร สาขา) ใช้เพื่อยืนยันตัวตนและติดต่อกลับในการให้คำปรึกษาเท่านั้น',
-    'ข้อความและรายละเอียดการปรึกษาถือเป็นความลับ เปิดเผยเฉพาะเจ้าหน้าที่ที่เกี่ยวข้อง',
-    'เจ้าหน้าที่อาจบันทึกสรุปการปรึกษาเพื่อใช้ติดตามและปรับปรุงการให้บริการ',
-    'กรณีเร่งด่วนหรือมีความเสี่ยงต่อความปลอดภัย เจ้าหน้าที่อาจติดต่อกลับหรือประสานหน่วยงานที่เกี่ยวข้องเพื่อช่วยเหลือ',
-    'ผู้ใช้ต้องใช้ถ้อยคำสุภาพ และไม่ใช้บริการในทางที่ผิดหรือก่อความเดือดร้อนแก่ผู้อื่น',
-    '(ข้อความตัวอย่าง จะปรับเป็นข้อตกลงฉบับจริงภายหลัง)',
+  /// ข้อตกลงและเงื่อนไข แบ่งเป็นหัวข้อ แต่ละหัวข้อมีหลายย่อหน้า
+  /// ย่อหน้าที่มี label จะแสดงหัวข้อย่อยตัวหนานำหน้า
+  static const terms = <TermsSection>[
+    (
+      title: 'การจัดเก็บข้อมูลส่วนบุคคลและการรักษาความลับข้อมูลการสมัคร',
+      items: [
+        (
+          label: null,
+          text:
+              'ข้อมูลที่ใช้สมัคร (เช่น อีเมล รหัสนิสิต ชื่อ-สกุล เบอร์โทร สาขา) '
+              'จะถูกนำมาใช้เพื่อยืนยันตัวตนและติดต่อกลับในการให้คำปรึกษาเท่านั้น',
+        ),
+        (
+          label: 'วัตถุประสงค์การจัดเก็บ',
+          text:
+              'ทางแอปพลิเคชันจะทำการจัดเก็บข้อมูลส่วนบุคคลและประวัติการสนทนาของท่าน '
+              'เพื่อใช้เป็นข้อมูลอ้างอิงและประกอบการให้คำปรึกษาในครั้งปัจจุบันและอนาคต '
+              'นอกจากนี้ เจ้าหน้าที่อาจบันทึกสรุปการปรึกษาเพื่อใช้ติดตามและปรับปรุงการให้บริการ',
+        ),
+        (
+          label: 'คำมั่นสัญญาด้านความปลอดภัย',
+          text:
+              'ข้อความและรายละเอียดการปรึกษาถือเป็นความลับ ซึ่งจะเปิดเผยเฉพาะเจ้าหน้าที่ที่เกี่ยวข้องเท่านั้น '
+              'ข้อมูลและประวัติการสนทนาทั้งหมดจะถูกจัดเก็บด้วยระบบรักษาความปลอดภัยขั้นสูง '
+              'และจะไม่มีการเปิดเผย ส่งต่อ หรือเผยแพร่สู่สาธารณะ '
+              'ตลอดจนบุคคลที่สามที่ไม่เกี่ยวข้องโดยเด็ดขาด',
+        ),
+      ],
+    ),
+    (
+      title: 'ข้อยกเว้นในกรณีฉุกเฉินความปลอดภัยของผู้ใช้',
+      items: [
+        (
+          label: null,
+          text:
+              'กรณีเร่งด่วนหรือมีความเสี่ยงต่อความปลอดภัย เจ้าหน้าที่อาจติดต่อกลับ'
+              'หรือประสานหน่วยงานที่เกี่ยวข้องเพื่อช่วยเหลือ',
+        ),
+      ],
+    ),
+    (
+      title: 'การขออนุญาตเข้าถึงสิทธิ์บนอุปกรณ์ (Device Permissions)',
+      items: [
+        (
+          label: 'การเข้าถึงไฟล์และคลังรูปภาพ (Photos & Files Access)',
+          text:
+              'เพื่อให้ท่านสามารถแนบไฟล์หรืออัปโหลดรูปภาพประกอบการสนทนา '
+              'เพื่ออธิบายรายละเอียดหรือขอคำปรึกษาเพิ่มเติมได้อย่างสะดวกและครบถ้วน',
+        ),
+      ],
+    ),
+    (
+      title: 'ข้อปฏิบัติในการใช้บริการ',
+      items: [
+        (
+          label: 'ระเบียบการใช้งาน',
+          text: 'ผู้ใช้ต้องใช้ถ้อยคำสุภาพ และไม่ใช้บริการในทางที่ผิดหรือก่อความเดือดร้อนแก่ผู้อื่น',
+        ),
+        (
+          label: null,
+          text:
+              'การกด "ยอมรับและดำเนินการต่อ" ถือว่าท่านได้รับทราบ ทำความเข้าใจ '
+              'และยินยอมให้ทางแอปพลิเคชันจัดเก็บข้อมูล เข้าถึงสิทธิ์บนอุปกรณ์ '
+              'รวมถึงยินยอมปฏิบัติตามข้อตกลงและเงื่อนไขการให้บริการตามที่ระบุไว้ข้างต้นทุกประการ',
+        ),
+      ],
+    ),
   ];
 
   @override
@@ -488,7 +552,7 @@ class LicenseAgreementDialog extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: Text(
-                'License Agreement',
+                'ขอความยินยอมในการเข้าถึงข้อมูลและนโยบายความเป็นส่วนตัว',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ),
@@ -549,7 +613,7 @@ class LicenseAgreementDialog extends StatelessWidget {
                       ),
                     ),
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Reject'),
+                    child: const Text('ปฏิเสธ'),
                   ),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
@@ -563,7 +627,7 @@ class LicenseAgreementDialog extends StatelessWidget {
                     onPressed: () => Navigator.pop(context, true),
                     iconAlignment: IconAlignment.end,
                     icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Accept Terms'),
+                    label: const Text('ยอมรับและดำเนินการต่อ'),
                   ),
                 ],
               ),
@@ -575,13 +639,21 @@ class LicenseAgreementDialog extends StatelessWidget {
   }
 }
 
+/// หัวข้อ 1 ข้อของข้อตกลง: ชื่อหัวข้อ + ย่อหน้า (label = หัวข้อย่อย ไม่มีก็ได้)
+typedef TermsSection = ({
+  String title,
+  List<({String? label, String text})> items,
+});
+
 /// กล่องข้อความ Terms and Conditions (มีกรอบ เลื่อนอ่านได้)
+/// หัวข้อหลักมีเลขข้อ ตัวหนาสีเข้ม / หัวข้อย่อยตัวหนาสีน้ำตาล / เนื้อหาสีจาง
 class _TermsBox extends StatelessWidget {
   const _TermsBox({required this.terms});
-  final List<String> terms;
+  final List<TermsSection> terms;
 
   @override
   Widget build(BuildContext context) {
+    const body = TextStyle(fontSize: 13, height: 1.5, color: AppColors.muted);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -594,22 +666,41 @@ class _TermsBox extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Terms and Conditions',
+              'ส่วนเนื้อหาการขออนุญาตมีดังนี้',
               style: TextStyle(fontSize: 18, color: AppColors.ink),
             ),
-            const SizedBox(height: 10),
-            for (final (i, t) in terms.indexed)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  i == terms.length - 1 ? t : '${i + 1}. $t',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.45,
-                    color: AppColors.muted,
-                  ),
+            for (final (i, section) in terms.indexed) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${i + 1}. ${section.title}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.4,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
                 ),
               ),
+              for (final item in section.items)
+                Padding(
+                  padding: const EdgeInsets.only(left: 14, top: 6),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        if (item.label != null)
+                          TextSpan(
+                            text: '${item.label}: ',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.caramel,
+                            ),
+                          ),
+                        TextSpan(text: item.text),
+                      ],
+                    ),
+                    style: body,
+                  ),
+                ),
+            ],
           ],
         ),
       ),
