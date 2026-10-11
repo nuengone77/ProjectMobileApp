@@ -33,6 +33,19 @@ void main() {
     expect(s.login('piyaromk@nu.ac.th', 'wrong'), 'รหัสผ่านไม่ถูกต้อง');
   });
 
+  test('แอปจริงเริ่มจากข้อมูลว่าง: มีแค่บัญชีเจ้าหน้าที่ 3 คน', () async {
+    final s = await openTestStore(path: path, demoData: false);
+    expect(s.users.length, 3);
+    expect(s.users.every((u) => u.isStaff), isTrue);
+    expect(s.conversations, isEmpty);
+    expect(s.appointments, isEmpty);
+    expect(s.reports, isEmpty);
+    // รีเซ็ตแล้วก็ยังว่างเหมือนเดิม
+    s.resetData();
+    expect(s.users.length, 3);
+    expect(s.conversations, isEmpty);
+  });
+
   test('ข้อมูลยังอยู่หลังปิด-เปิดแอปใหม่ (รวมถึงล็อกอินค้างไว้)', () async {
     var s = await openTestStore(path: path);
 
@@ -111,10 +124,7 @@ void main() {
     final img = File('${dir.path}/photo.JPG')..writeAsStringSync('img');
 
     var s = await openTestStore(path: path);
-    s.login(
-      'somjaij67@nu.ac.th',
-      MockStore.demoPasswords['somjaij67@nu.ac.th']!,
-    );
+    s.login('somjaij67@nu.ac.th', testPasswords['somjaij67@nu.ac.th']!);
     final conv = s.openConversation(categoryId: 'general', staffId: 'st2');
     final pdf = await Attachments.import(src.path);
     final jpg = await Attachments.import(img.path);
@@ -138,10 +148,32 @@ void main() {
     expect(File(Attachments.pathOf(pdf)).readAsStringSync(), 'pdf');
 
     // รีเซ็ตข้อมูลทดลอง -> ไฟล์แนบถูกลบด้วย
-    s.resetDemoData();
+    s.resetData();
     expect(File(Attachments.pathOf(pdf)).existsSync(), isFalse);
     await s.flush();
   });
+
+  test(
+    'นักศึกษาแก้เบอร์โทร/สาขาในโปรไฟล์ได้ และยังอยู่หลังเปิดแอปใหม่',
+    () async {
+      var s = await openTestStore(path: path);
+      s.login('kittik66@nu.ac.th', testPasswords['kittik66@nu.ac.th']!);
+      expect(
+        s.updateMyProfile(phone: '12345'),
+        'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0',
+      );
+      expect(s.updateMyProfile(major: 'วิศวกรรมคอมพิวเตอร์'), 'กรุณาเลือกสาขา');
+      expect(s.updateMyProfile(phone: '0891112222'), isNull);
+      expect(s.updateMyProfile(major: 'สาขาวิชาวิทยาการข้อมูล'), isNull);
+      await s.flush();
+
+      s = await openTestStore(path: path);
+      final me = s.currentUser!;
+      expect(me.phone, '0891112222');
+      expect(me.major, 'สาขาวิชาวิทยาการข้อมูล');
+      expect(MockStore.departmentOf(me.major), 'ภาควิชาคณิตศาสตร์');
+    },
+  );
 
   test('รีเซ็ตข้อมูลทดลอง: กลับเป็นข้อมูลตั้งต้นและออกจากระบบ', () async {
     var s = await openTestStore(path: path);
@@ -153,7 +185,7 @@ void main() {
       studentId: '67313318',
       nameEn: 'Nanthit Bunmee',
     );
-    s.resetDemoData();
+    s.resetData();
     expect(s.currentUser, isNull);
     expect(s.users.any((u) => u.email == 'nanthitb67@nu.ac.th'), isFalse);
     await s.flush();

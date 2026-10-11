@@ -20,6 +20,12 @@ Future<void> main() async {
   // เปิดฐานข้อมูล SQLite และโหลดข้อมูล (รวมถึงผู้ที่ล็อกอินค้างไว้) ก่อนแสดงหน้าแรก
   await Attachments.init();
   store = await MockStore.open();
+  // รีเซ็ตข้อมูลทดลอง: รันด้วย flutter run --dart-define=RESET_DB=true
+  // ไม่มีปุ่มในแอปให้ผู้ใช้กด
+  if (const bool.fromEnvironment('RESET_DB')) {
+    store.resetData();
+    await store.flush();
+  }
   runApp(const KaiwanApp());
 }
 

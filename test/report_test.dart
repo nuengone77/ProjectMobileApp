@@ -152,7 +152,7 @@ void main() {
     await old.close();
 
     var s = await openTestStore(path: path); // เปิดแล้วอัปเกรดเป็นเวอร์ชัน 2
-    s.resetDemoData();
+    s.resetData();
     final c = closedChat(s);
     final row = s.myReports().firstWhere((r) => r.conversationId == c.id);
     s.updateReport(

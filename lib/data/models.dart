@@ -28,10 +28,10 @@ class AppUser {
   passwordHash; // รหัสผ่านแบบ hash (ดู passwords.dart) ไม่เก็บตัวจริง
   final String name;
   final Role role;
-  final String major; // สาขา (เฉพาะนักศึกษา)
+  String major; // สาขา (เฉพาะนักศึกษา แก้ได้ในหน้าโปรไฟล์)
   final String studentId; // รหัสนิสิต (เฉพาะนักศึกษา)
   final String nameEn; // ชื่อ-สกุลภาษาอังกฤษ (เฉพาะนักศึกษา)
-  final String phone; // เบอร์โทรศัพท์ (เฉพาะนักศึกษา)
+  String phone; // เบอร์โทรศัพท์ (เฉพาะนักศึกษา แก้ได้ในหน้าโปรไฟล์)
   final String nickname; // ชื่อเล่น เช่น แอน (เฉพาะเจ้าหน้าที่)
   final String specialty; // ความเชี่ยวชาญ แสดงในหน้าเลือกพี่ไข่หวาน
   final Color avatarColor; // สีพื้นหลังรูปโปรไฟล์

@@ -9,15 +9,12 @@ import 'package:kaiwan_chuaiduai/widgets/common.dart';
 
 import 'test_store.dart';
 
-/// ล็อกอินด้วยบัญชีทดลองผ่านหน้า Login (เปิดกล่อง “บัญชีทดลอง” แล้วแตะชิป)
-Future<void> loginWithDemo(WidgetTester tester, String chip) async {
+/// ล็อกอินผ่านหน้า Login โดยพิมพ์อีเมล + รหัสผ่านของบัญชีตั้งต้น
+Future<void> loginAs(WidgetTester tester, String email) async {
   await tester.pumpWidget(const KaiwanApp());
-  final demo = find.text('บัญชีทดลอง');
-  await tester.ensureVisible(demo);
-  await tester.tap(demo);
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text(chip));
-  await tester.tap(find.text(chip));
+  final fields = find.byType(TextField);
+  await tester.enterText(fields.at(0), email);
+  await tester.enterText(fields.at(1), testPasswords[email]!);
   final login = find.text('login');
   await tester.ensureVisible(login);
   await tester.tap(login);
@@ -26,7 +23,7 @@ Future<void> loginWithDemo(WidgetTester tester, String chip) async {
 
 /// ล็อกอินเป็นนักศึกษาทดลองผ่านหน้า Login
 Future<void> loginAsStudent(WidgetTester tester) =>
-    loginWithDemo(tester, 'นักศึกษา');
+    loginAs(tester, 'somjaij67@nu.ac.th');
 
 void main() {
   // ฐานข้อมูลทดสอบ (SQLite ในหน่วยความจำ) ใช้ร่วมกันทุก test ในไฟล์นี้
@@ -135,9 +132,7 @@ void main() {
     store.logout();
     store.login(
       store.users.firstWhere((u) => u.id == studentId).email,
-      MockStore.demoPasswords[store.users
-          .firstWhere((u) => u.id == studentId)
-          .email]!,
+      testPasswords[store.users.firstWhere((u) => u.id == studentId).email]!,
     );
     store.send(conv, 'สวัสดีค่ะ');
     expect(store.myConversations().contains(conv), isTrue);
@@ -172,10 +167,7 @@ void main() {
     store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
     expect(store.staffConversations().contains(urgent), isFalse);
     store.logout();
-    store.login(
-      'somjaij67@nu.ac.th',
-      MockStore.demoPasswords['somjaij67@nu.ac.th']!,
-    );
+    store.login('somjaij67@nu.ac.th', testPasswords['somjaij67@nu.ac.th']!);
 
     await tester.enterText(find.byType(TextField), 'ต้องการความช่วยเหลือด่วน');
     await tester.tap(find.byIcon(Icons.send_rounded));
@@ -293,7 +285,7 @@ void main() {
   testWidgets('staff closes chat with summary -> moves to history', (
     tester,
   ) async {
-    await loginWithDemo(tester, 'จนท. 1');
+    await loginAs(tester, 'piyaromk@nu.ac.th');
 
     // แท็บข้อความ -> เปิดแชทแรก
     await tester.tap(find.text('ข้อความ').last);
@@ -423,6 +415,52 @@ void main() {
     expect(tester.takeException(), isNull);
   });
   // นักศึกษายกเลิกนัดที่พี่เสนอเวลาใหม่ (ยังไม่ยืนยัน) ได้ โดยต้องกดยืนยันก่อน
+  // หน้าโปรไฟล์นิสิต: ปุ่มดินสอแก้เบอร์โทร และภาควิชา/สาขา
+  testWidgets('student edits phone and major from the profile page', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await loginAsStudent(tester);
+    await tester.tap(find.text('โปรไฟล์'));
+    await tester.pumpAndSettle();
+
+    // เบอร์ผิดรูปแบบ -> ขึ้น error ไม่บันทึก
+    await tester.tap(find.byTooltip('แก้ไขเบอร์โทรศัพท์'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '123');
+    await tester.tap(find.text('บันทึก'));
+    await tester.pumpAndSettle();
+    expect(find.text('เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '0898887777');
+    await tester.tap(find.text('บันทึก'));
+    await tester.pumpAndSettle();
+    expect(store.currentUser!.phone, '0898887777');
+    expect(find.text('0898887777'), findsOneWidget);
+
+    // เปลี่ยนภาควิชา -> ต้องเลือกสาขาใหม่
+    await tester.tap(find.byTooltip('แก้ไขสาขา'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.text(MockStore.departmentOf(store.currentUser!.major)!).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ภาควิชาเคมี').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('สาขา').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('สาขาวิชาเคมี').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('บันทึก'));
+    await tester.pumpAndSettle();
+    expect(store.currentUser!.major, 'สาขาวิชาเคมี');
+    expect(find.text('ภาควิชาเคมี'), findsOneWidget);
+
+    store.logout();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+  });
+
   testWidgets('student can cancel an unconfirmed (proposed) appointment', (
     tester,
   ) async {
@@ -455,7 +493,7 @@ void main() {
   testWidgets('staff can view the student profile from the chat', (
     tester,
   ) async {
-    await loginWithDemo(tester, 'จนท. 1');
+    await loginAs(tester, 'piyaromk@nu.ac.th');
     await tester.tap(find.text('ข้อความ').last);
     await tester.pumpAndSettle();
     final conv = store.staffConversations(closed: false).first;
@@ -480,7 +518,7 @@ void main() {
     tester.view.physicalSize = const Size(900, 2000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await loginWithDemo(tester, 'จนท. 1');
+    await loginAs(tester, 'piyaromk@nu.ac.th');
     // ล็อกอินแล้วเปิดแท็บข้อความก่อน -> ไปแท็บภาพรวม
     expect(find.text('ภาพรวม'), findsOneWidget);
     await tester.tap(find.text('ภาพรวม'));

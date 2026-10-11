@@ -1,12 +1,14 @@
 // หน้าโปรไฟล์ ใช้ร่วมกันทั้งนักศึกษาและเจ้าหน้าที่ (แท็บขวาสุด)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/mock_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// แสดงข้อมูลผู้ใช้, ปุ่มรีเซ็ตข้อมูลทดลอง และปุ่มออกจากระบบ
+/// แสดงข้อมูลผู้ใช้ และปุ่มออกจากระบบ
+/// นักศึกษาแก้ เบอร์โทร และ ภาควิชา/สาขา ได้เอง (ปุ่มดินสอท้ายแถว)
 /// นักศึกษาเห็น รหัสนิสิต/ชื่ออังกฤษ/เบอร์/สาขา ส่วนเจ้าหน้าที่เห็น “ชื่อ-สกุล”
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -65,32 +67,26 @@ class ProfileScreen extends StatelessWidget {
                     label: 'ชื่อ-สกุล ',
                     value: me.name,
                   ),
-                if (me.phone.isNotEmpty)
-                  _Info(
-                    icon: Icons.phone_outlined,
-                    label: 'เบอร์โทรศัพท์',
-                    value: me.phone,
-                  ),
-                if (MockStore.departmentOf(me.major) != null)
-                  _Info(
-                    icon: Icons.account_balance_outlined,
-                    label: 'ภาควิชา',
-                    value: MockStore.departmentOf(me.major)!,
-                  ),
+                _Info(
+                  icon: Icons.phone_outlined,
+                  label: 'เบอร์โทรศัพท์',
+                  value: me.phone.isEmpty ? 'ไม่ได้ระบุ' : me.phone,
+                  onEdit: () => _editPhone(context, me.phone),
+                ),
+                _Info(
+                  icon: Icons.account_balance_outlined,
+                  label: 'ภาควิชา',
+                  value: MockStore.departmentOf(me.major) ?? 'ไม่ได้ระบุ',
+                  onEdit: () => _editMajor(context, me.major),
+                ),
                 _Info(
                   icon: Icons.school_outlined,
                   label: 'สาขา',
-                  value: me.major,
+                  value: me.major.isEmpty ? 'ไม่ได้ระบุ' : me.major,
+                  onEdit: () => _editMajor(context, me.major),
                 ),
               ],
-              const SizedBox(height: 12),
-              // รีเซ็ตข้อมูลทดลอง: ล้างฐานข้อมูลแล้วใส่ข้อมูลตั้งต้นใหม่ (สำหรับเดโม)
-              TextButton.icon(
-                onPressed: () => _confirmReset(context),
-                icon: const Icon(Icons.restart_alt, size: 18),
-                label: const Text('รีเซ็ตข้อมูลทดลอง'),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 28),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
@@ -113,35 +109,6 @@ class ProfileScreen extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-/// ถามยืนยันก่อนรีเซ็ตข้อมูลทดลอง (ลบแชท/นัด/บัญชีที่สมัครเพิ่มทั้งหมด แล้วออกจากระบบ)
-Future<void> _confirmReset(BuildContext context) async {
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text('รีเซ็ตข้อมูลทดลอง?'),
-      content: const Text(
-        'ข้อมูลทั้งหมดในเครื่อง (แชท นัดหมาย บัญชีที่สมัครเพิ่ม) จะถูกลบ '
-        'และกลับเป็นข้อมูลตั้งต้น จากนั้นจะออกจากระบบ',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('ยกเลิก'),
-        ),
-        TextButton(
-          style: TextButton.styleFrom(foregroundColor: AppColors.alert),
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('รีเซ็ต'),
-        ),
-      ],
-    ),
-  );
-  if (ok == true && context.mounted) {
-    Navigator.of(context).popUntil((r) => r.isFirst);
-    store.resetDemoData();
   }
 }
 
@@ -237,10 +204,18 @@ String _orDash(String v) => v.trim().isEmpty ? 'ไม่ได้ระบุ' 
 
 /// แถวแสดงข้อมูล 1 รายการ (ไอคอน + หัวข้อ + ค่า)
 class _Info extends StatelessWidget {
-  const _Info({required this.icon, required this.label, required this.value});
+  const _Info({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.onEdit,
+  });
   final IconData icon;
   final String label;
   final String value;
+
+  /// ใส่ = แสดงปุ่มดินสอท้ายแถวให้แก้ข้อมูลได้
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -259,6 +234,180 @@ class _Info extends StatelessWidget {
             value,
             style: const TextStyle(fontSize: 15, color: AppColors.ink),
           ),
+          trailing: onEdit == null
+              ? null
+              : IconButton(
+                  tooltip: 'แก้ไข$label',
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.caramel,
+                    size: 20,
+                  ),
+                  onPressed: onEdit,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// แก้เบอร์โทร: หน้าต่างกรอกเบอร์ใหม่ (10 หลัก ขึ้นต้นด้วย 0)
+Future<void> _editPhone(BuildContext context, String current) async {
+  final phone = await showDialog<String>(
+    context: context,
+    builder: (_) => _PhoneDialog(current: current),
+  );
+  if (phone == null || !context.mounted) return;
+  store.updateMyProfile(phone: phone);
+  ScaffoldMessenger.of(context)
+      .showSnackBar(const SnackBar(content: Text('บันทึกเบอร์โทรแล้ว')));
+}
+
+class _PhoneDialog extends StatefulWidget {
+  const _PhoneDialog({required this.current});
+  final String current;
+
+  @override
+  State<_PhoneDialog> createState() => _PhoneDialogState();
+}
+
+class _PhoneDialogState extends State<_PhoneDialog> {
+  late final _phone = TextEditingController(text: widget.current);
+  String? _error;
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (!MockStore.isValidPhone(_phone.text)) {
+      setState(() => _error = 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0');
+      return;
+    }
+    Navigator.pop(context, _phone.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('แก้ไขเบอร์โทรศัพท์'),
+      content: TextField(
+        controller: _phone,
+        autofocus: true,
+        keyboardType: TextInputType.phone,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ],
+        decoration: InputDecoration(hintText: '0xxxxxxxxx', errorText: _error),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('ยกเลิก'),
+        ),
+        TextButton(onPressed: _save, child: const Text('บันทึก')),
+      ],
+    );
+  }
+}
+
+/// แก้ภาควิชา/สาขา: เลือกภาควิชาก่อน แล้วเลือกสาขาในภาควิชานั้น (แบบเดียวกับตอนสมัคร)
+Future<void> _editMajor(BuildContext context, String current) async {
+  final major = await showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => _MajorSheet(current: current),
+  );
+  if (major == null || !context.mounted) return;
+  store.updateMyProfile(major: major);
+  ScaffoldMessenger.of(context)
+      .showSnackBar(const SnackBar(content: Text('บันทึกภาควิชา/สาขาแล้ว')));
+}
+
+class _MajorSheet extends StatefulWidget {
+  const _MajorSheet({required this.current});
+  final String current;
+
+  @override
+  State<_MajorSheet> createState() => _MajorSheetState();
+}
+
+class _MajorSheetState extends State<_MajorSheet> {
+  late String? _department = MockStore.departmentOf(widget.current);
+  late String? _major = _department == null ? null : widget.current;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget dropdown({
+      required String label,
+      required String? value,
+      required List<String> options,
+      required ValueChanged<String?> onChanged,
+    }) => DropdownButtonFormField<String>(
+      key: ValueKey('$label-$value'),
+      initialValue: value,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        for (final o in options)
+          DropdownMenuItem(
+            value: o,
+            child: Text(o, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: onChanged,
+    );
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'แก้ไขภาควิชา/สาขา',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            dropdown(
+              label: 'ภาควิชา',
+              value: _department,
+              options: MockStore.departments.keys.toList(),
+              // เปลี่ยนภาควิชา -> ต้องเลือกสาขาใหม่
+              onChanged: (v) => setState(() {
+                _department = v;
+                _major = null;
+              }),
+            ),
+            const SizedBox(height: 12),
+            dropdown(
+              label: 'สาขา',
+              value: _major,
+              options: MockStore.departments[_department] ?? const [],
+              onChanged: (v) => setState(() => _major = v),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _major == null
+                  ? null
+                  : () => Navigator.pop(context, _major),
+              child: const Text('บันทึก'),
+            ),
+          ],
         ),
       ),
     );

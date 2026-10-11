@@ -20,23 +20,26 @@ import 'registration_rules.dart';
 /// ตอนต่อ backend จริง ให้แทนที่เมธอดในไฟล์นี้ด้วยการเรียก API
 /// โดยคงชื่อเมธอดเดิมไว้ หน้าจอจะได้ไม่ต้องแก้มาก
 class MockStore extends ChangeNotifier {
-  MockStore._(this._db);
+  MockStore._(this._db, this._demoData);
 
   final AppDatabase _db;
 
+  /// ใส่ข้อมูลทดลอง (นักศึกษา/แชท/นัด/เคสตัวอย่าง) ตอนสร้างฐานข้อมูลใหม่หรือไม่
+  final bool _demoData;
+
   /// เปิด store: เปิดฐานข้อมูล -> ครั้งแรกใส่ข้อมูลตั้งต้น, ครั้งต่อไปโหลดของเดิม
   /// และคืนสถานะล็อกอินค้างไว้ (ถ้ายังไม่ได้ออกจากระบบ)
-  /// [factory]/[path] ใช้ตอนทดสอบ ปกติไม่ต้องส่ง
+  /// [factory]/[path]/[demoData] ใช้ตอนทดสอบ ปกติไม่ต้องส่ง
+  /// แอปจริงเริ่มจากฐานข้อมูลว่าง มีแค่บัญชีเจ้าหน้าที่ 3 คน
   static Future<MockStore> open({
     DatabaseFactory? factory,
     String? path,
+    bool demoData = false,
   }) async {
     final db = await AppDatabase.open(factory: factory, path: path);
-    final s = MockStore._(db);
+    final s = MockStore._(db, demoData);
     if (await db.isEmpty()) {
-      s._seed();
-      s._saveAll();
-      s.conversations.forEach(s._syncChatReport);
+      s._seedAll();
     } else {
       final data = await db.loadAll();
       s.users.addAll(data.users);
@@ -64,17 +67,6 @@ class MockStore extends ChangeNotifier {
   String _nextId(String p) =>
       '$p${DateTime.now().microsecondsSinceEpoch}_${_idSeq++}';
 
-  /// รหัสผ่านของบัญชีตั้งต้น ใช้เฉพาะปุ่ม “บัญชีทดลอง” กรอกอัตโนมัติ
-  /// (ในฐานข้อมูลเก็บแค่ hash จึงต้องจำตัวจริงไว้ที่นี่สำหรับเดโม)
-  static const demoPasswords = {
-    'somjaij67@nu.ac.th': '1234',
-    'kittik66@nu.ac.th': '1234',
-    'maneerats68@nu.ac.th': '1234',
-    'piyaromk@nu.ac.th': 'kaiwanpiyaromk',
-    'khuwnruanep@nu.ac.th': 'kaiwankhuwnruanep',
-    'chonnikank@nu.ac.th': 'kaiwanchonnikank',
-  };
-
   /// บันทึกทุกอย่างในหน่วยความจำลงฐานข้อมูล (ใช้หลังใส่ข้อมูลตั้งต้น)
   void _saveAll() {
     users.forEach(_db.saveUser);
@@ -83,8 +75,16 @@ class MockStore extends ChangeNotifier {
     reports.forEach(_db.saveReport);
   }
 
-  /// รีเซ็ตข้อมูลทดลอง: ลบทุกอย่างแล้วใส่ข้อมูลตั้งต้นใหม่ (ออกจากระบบด้วย)
-  void resetDemoData() {
+  /// ใส่ข้อมูลตั้งต้นลงฐานข้อมูลใหม่: บัญชีเจ้าหน้าที่ (+ ข้อมูลทดลองถ้าเปิดไว้)
+  void _seedAll() {
+    _seed();
+    if (_demoData) _seedDemo();
+    _saveAll();
+    conversations.forEach(_syncChatReport);
+  }
+
+  /// รีเซ็ตข้อมูล: ลบทุกอย่างแล้วกลับเป็นข้อมูลตั้งต้น (ออกจากระบบด้วย)
+  void resetData() {
     _db.clearAll();
     try {
       Attachments.clear();
@@ -96,9 +96,7 @@ class MockStore extends ChangeNotifier {
     appointments.clear();
     reports.clear();
     currentUser = null;
-    _seed();
-    _saveAll();
-    conversations.forEach(_syncChatReport);
+    _seedAll();
     notifyListeners();
   }
 
@@ -271,6 +269,25 @@ class MockStore extends ChangeNotifier {
           (b.last?.time ?? DateTime(0)).compareTo(a.last?.time ?? DateTime(0)),
     );
     return list;
+  }
+
+  /// รูปแบบเบอร์โทร: 10 หลัก ขึ้นต้นด้วย 0 (ใช้ทั้งตอนสมัครและแก้โปรไฟล์)
+  static bool isValidPhone(String phone) =>
+      RegExp(r'^0\d{9}$').hasMatch(phone.trim());
+
+  /// นักศึกษาแก้ข้อมูลตัวเองในหน้าโปรไฟล์ (เบอร์โทร / สาขา ซึ่งบอกภาควิชาด้วย)
+  /// คืน null ถ้าสำเร็จ หรือข้อความ error
+  String? updateMyProfile({String? phone, String? major}) {
+    final me = currentUser!;
+    if (phone != null && !isValidPhone(phone)) {
+      return 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0';
+    }
+    if (major != null && departmentOf(major) == null) return 'กรุณาเลือกสาขา';
+    if (phone != null) me.phone = phone.trim();
+    if (major != null) me.major = major;
+    _db.saveUser(me);
+    notifyListeners();
+    return null;
   }
 
   /// เปิดห้องแชทเมื่อนักศึกษาเลือกหัวข้อ (+ รูปแบบการปรึกษา) เสร็จ
@@ -767,9 +784,46 @@ class MockStore extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------- seed data
-  // ข้อมูลตั้งต้นตอนเปิดแอปครั้งแรก (และตอนรีเซ็ต): บัญชีเจ้าหน้าที่, นักศึกษาทดลอง (รหัส 1234), แชท/นัดตัวอย่าง
+  // ข้อมูลตั้งต้นตอนเปิดแอปครั้งแรก (และตอนรีเซ็ต)
 
+  /// บัญชีเจ้าหน้าที่ 3 คน (เจ้าหน้าที่สมัครเองไม่ได้) มีทุกครั้ง
   void _seed() {
+    users.addAll([
+      // บัญชีเจ้าหน้าที่ (สร้างไว้ให้แล้ว มี 3 คน ไม่ต้องสมัคร)
+      // ชื่อเล่นเป็นชื่อชั่วคราว แก้เป็นชื่อจริงได้ที่นี่
+      AppUser(
+        id: 'st1',
+        email: 'piyaromk@nu.ac.th',
+        passwordHash: hashPassword('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
+        name: 'เจ้าหน้าที่คนที่ 1',
+        nickname: '1',
+        avatarColor: const Color(0xFFB9D7E8),
+        role: Role.staff,
+      ),
+      AppUser(
+        id: 'st2',
+        email: 'khuwnruanep@nu.ac.th',
+        passwordHash: hashPassword('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep'),
+        name: 'เจ้าหน้าที่คนที่ 2',
+        nickname: '2',
+        avatarColor: const Color(0xFFF6C9D0),
+        role: Role.staff,
+      ),
+      AppUser(
+        id: 'st3',
+        email: 'chonnikank@nu.ac.th',
+        passwordHash: hashPassword('chonnikank@nu.ac.th', 'kaiwanchonnikank'),
+        name: 'เจ้าหน้าที่คนที่ 3',
+        nickname: '3',
+        avatarColor: const Color(0xFFCDE8C5),
+        role: Role.staff,
+      ),
+    ]);
+  }
+
+  /// ข้อมูลทดลอง (นักศึกษา 3 คน + แชท นัดหมาย เคส onsite ตัวอย่าง)
+  /// ใช้เฉพาะตอนทดสอบ (open(demoData: true)) แอปจริงเริ่มจากข้อมูลว่าง
+  void _seedDemo() {
     users.addAll([
       // นักศึกษาทดลอง (อีเมล/รหัสนิสิต/ชื่ออังกฤษ ตามเงื่อนไขการลงทะเบียน · รหัสผ่าน 1234)
       AppUser(
@@ -804,35 +858,6 @@ class MockStore extends ChangeNotifier {
         phone: '0834567890',
         major: 'สาขาวิชาชีววิทยา',
         role: Role.student,
-      ),
-      // บัญชีเจ้าหน้าที่ (สร้างไว้ให้แล้ว มี 3 คน ไม่ต้องสมัคร)
-      // ชื่อเล่นเป็นชื่อชั่วคราว แก้เป็นชื่อจริงได้ที่นี่
-      AppUser(
-        id: 'st1',
-        email: 'piyaromk@nu.ac.th',
-        passwordHash: hashPassword('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
-        name: 'เจ้าหน้าที่คนที่ 1',
-        nickname: '1',
-        avatarColor: const Color(0xFFB9D7E8),
-        role: Role.staff,
-      ),
-      AppUser(
-        id: 'st2',
-        email: 'khuwnruanep@nu.ac.th',
-        passwordHash: hashPassword('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep'),
-        name: 'เจ้าหน้าที่คนที่ 2',
-        nickname: '2',
-        avatarColor: const Color(0xFFF6C9D0),
-        role: Role.staff,
-      ),
-      AppUser(
-        id: 'st3',
-        email: 'chonnikank@nu.ac.th',
-        passwordHash: hashPassword('chonnikank@nu.ac.th', 'kaiwanchonnikank'),
-        name: 'เจ้าหน้าที่คนที่ 3',
-        nickname: '3',
-        avatarColor: const Color(0xFFCDE8C5),
-        role: Role.staff,
       ),
     ]);
 

@@ -21,14 +21,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 /// หน้า Login: โลโก้, ช่อง Email + password, ปุ่ม login, ลิงก์ไปสมัครสมาชิก
-/// ด้านล่างมีปุ่มเล็ก “บัญชีทดลอง” (ซ่อนไว้) สำหรับเดโม
 /// พอล็อกอินสำเร็จ _RoleGate ใน main.dart จะพาไปหน้านักศึกษา/เจ้าหน้าที่เอง
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
-  bool _showDemo = false; // เปิด/ปิดกล่องบัญชีทดลอง
   String? _error; // ข้อความ error ที่แสดงใต้ช่องกรอก (null = ไม่มี)
 
   /// ตรวจว่ากรอกครบ แล้วส่งไปเช็กกับ store (หน่วง 0.5 วิ ให้ดูเหมือนรอ server)
@@ -50,16 +48,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = err;
       });
     }
-  }
-
-  /// กรอกอีเมล + รหัสผ่านของบัญชีนั้นให้อัตโนมัติ เมื่อแตะชิปบัญชีทดลอง
-  void _fill(String email) {
-    setState(() {
-      _email.text = email;
-      // ฐานข้อมูลเก็บแค่ hash จึงใช้รหัสผ่านตัวจริงจากรายการบัญชีทดลอง
-      _password.text = MockStore.demoPasswords[email] ?? '';
-      _error = null;
-    });
   }
 
   @override
@@ -147,74 +135,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: AppColors.muted),
                 ),
-                const SizedBox(height: 24),
-                // บัญชีทดลอง: ซ่อนไว้ กดแล้วค่อยแสดง (มีไว้เพื่อเดโมเท่านั้น)
-                TextButton.icon(
-                  onPressed: () => setState(() => _showDemo = !_showDemo),
-                  icon: Icon(
-                    _showDemo ? Icons.expand_less : Icons.science_outlined,
-                    size: 16,
-                    color: AppColors.muted,
-                  ),
-                  label: const Text(
-                    'บัญชีทดลอง',
-                    style: TextStyle(fontSize: 12, color: AppColors.muted),
-                  ),
-                ),
-                if (_showDemo) _DemoAccounts(onPick: _fill),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// กล่องชิปบัญชีทดลอง (นักศึกษา 1 + เจ้าหน้าที่ทุกคน) มีไว้เพื่อเดโมเท่านั้น
-/// ลบออกได้เมื่อใช้งานจริง
-class _DemoAccounts extends StatelessWidget {
-  const _DemoAccounts({required this.onPick});
-  final ValueChanged<String> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cream,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'แตะเพื่อกรอกอีเมลและรหัสผ่านอัตโนมัติ',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.muted,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ActionChip(
-                avatar: const Text('🧑‍🎓'),
-                label: const Text('นักศึกษา'),
-                onPressed: () => onPick('somjaij67@nu.ac.th'),
-              ),
-              for (final s in store.staff)
-                ActionChip(
-                  avatar: const Text('👩🏻‍💼'),
-                  label: Text('จนท. ${s.nickname}'),
-                  onPressed: () => onPick(s.email),
-                ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -415,8 +339,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ...digitsOnly,
                   LengthLimitingTextInputFormatter(10),
                 ],
-                validator: (v) =>
-                    (v == null || !RegExp(r'^0\d{9}$').hasMatch(v))
+                validator: (v) => (v == null || !MockStore.isValidPhone(v))
                     ? 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'
                     : null,
               ),
