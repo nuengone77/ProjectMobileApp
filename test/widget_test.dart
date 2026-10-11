@@ -105,9 +105,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsOneWidget); // อยู่หน้าแชท
 
-    final conv = store.myConversations().firstWhere(
-      (c) => c.isSpecific && c.staffId == 'st3' && !c.closed,
+    final conv = store.conversations.firstWhere(
+      (c) =>
+          c.studentId == store.currentUser!.id &&
+          c.isSpecific &&
+          c.staffId == 'st3' &&
+          !c.closed,
     );
+    // ยังไม่พิมพ์ -> ไม่ขึ้นในรายการแชทของนิสิตเอง
+    expect(store.myConversations().contains(conv), isFalse);
 
     // ย้อนกลับ -> หน้าเลือกพี่ (ไม่ใช่หน้าแรก)
     await tester.tap(find.byType(BackButton));
@@ -134,6 +140,7 @@ void main() {
           .email]!,
     );
     store.send(conv, 'สวัสดีค่ะ');
+    expect(store.myConversations().contains(conv), isTrue);
     store.logout();
     store.login('chonnikank@nu.ac.th', 'kaiwanchonnikank');
     expect(store.staffConversations().contains(conv), isTrue);
@@ -155,8 +162,11 @@ void main() {
     expect(find.byType(CatAvatar), findsOneWidget);
 
     // ยังไม่พิมพ์ทัก -> เจ้าหน้าที่ยังไม่เห็นห้องเร่งด่วนนี้
-    final urgent = store.myConversations().firstWhere(
-      (c) => c.categoryId == 'urgent' && !c.closed,
+    final urgent = store.conversations.firstWhere(
+      (c) =>
+          c.studentId == store.currentUser!.id &&
+          c.categoryId == 'urgent' &&
+          !c.closed,
     );
     store.logout();
     store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');

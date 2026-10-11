@@ -261,7 +261,11 @@ class MockStore extends ChangeNotifier {
     // ไม่มีผู้ใช้ (เช่น ระหว่างแอนิเมชันตอน logout) คืนรายการว่างแทนการ crash
     final me = currentUser;
     if (me == null) return [];
-    final list = conversations.where((c) => c.studentId == me.id).toList();
+    // ห้องที่กดเข้าไปแต่ยังไม่ได้พิมพ์/ส่งอะไรเลย ไม่ต้องขึ้นในรายการ (กันรายการรก)
+    // กดเลือกหัวข้อ/พี่คนเดิมอีกครั้งจะเปิดห้องเดิมให้
+    final list = conversations
+        .where((c) => c.studentId == me.id && hasStudentMessage(c))
+        .toList();
     list.sort(
       (a, b) =>
           (b.last?.time ?? DateTime(0)).compareTo(a.last?.time ?? DateTime(0)),

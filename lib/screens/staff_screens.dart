@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/mock_store.dart';
+import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'appointment_screens.dart';
@@ -132,31 +133,7 @@ class StaffHome extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
-          Row(
-            children: [
-              StaffAvatar(user: me, size: 52),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      me.displayName,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                    Text(
-                      'เจ้าหน้าที่',
-                      style: const TextStyle(color: AppColors.muted),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          StaffProfileHeader(user: me),
           const SizedBox(height: 18),
           Row(
             children: [
@@ -288,10 +265,14 @@ class StaffConversationsScreen extends StatefulWidget {
     required this.title,
     required this.closed,
     this.categoryId,
+    this.showProfile = false,
   });
   final String title;
   final bool closed;
   final String? categoryId;
+
+  /// แสดงรูป + ชื่อเจ้าหน้าที่ด้านบน แล้วตามด้วยหัวข้อ (ใช้ในแท็บข้อความ)
+  final bool showProfile;
 
   @override
   State<StaffConversationsScreen> createState() =>
@@ -307,10 +288,35 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
     final showFilter =
         widget.categoryId == null ||
         !MockStore.category(widget.categoryId!).urgent;
+    final me = store.currentUser;
+    final profile = widget.showProfile && me != null;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: profile ? null : AppBar(title: Text(widget.title)),
       body: Column(
         children: [
+          // แท็บข้อความ: โปรไฟล์เจ้าหน้าที่ + หัวข้อ แทน AppBar
+          if (profile)
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                child: Column(
+                  children: [
+                    StaffProfileHeader(user: me),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
           if (showFilter)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -378,6 +384,44 @@ class StaffInboxScreen extends StatelessWidget {
   const StaffInboxScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      const StaffConversationsScreen(title: 'ข้อความ', closed: false);
+  Widget build(BuildContext context) => const StaffConversationsScreen(
+    title: 'ข้อความ',
+    closed: false,
+    showProfile: true,
+  );
+}
+
+/// รูป + ชื่อเจ้าหน้าที่ที่ล็อกอินอยู่ (ด้านบนของแท็บข้อความ และแท็บภาพรวม)
+class StaffProfileHeader extends StatelessWidget {
+  const StaffProfileHeader({super.key, required this.user});
+  final AppUser user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        StaffAvatar(user: user, size: 52),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.displayName,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+              const Text(
+                'เจ้าหน้าที่',
+                style: TextStyle(color: AppColors.muted),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
