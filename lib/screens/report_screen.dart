@@ -315,8 +315,8 @@ class _ReportTable extends StatelessWidget {
               DataRow(
                 color: WidgetStatePropertyAll(
                   AppStore.category(r.categoryId).urgent
-                      ? AppColors.urgentSoft
-                      : AppColors.surface,
+                      ? AppColors.orange
+                      : AppColors.yellowLight,
                 ),
                 onSelectChanged: (_) => onTap(r),
                 cells: [

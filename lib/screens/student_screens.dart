@@ -127,12 +127,24 @@ class StudentHome extends StatelessWidget {
         children: [
           Row(
             children: [
+              // รูปแมวไข่หวานโบกมือทักทาย (ตามแบบ)
+              Container(
+                width: 60,
+                height: 60,
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(studentAvatarImage),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'สวัสดี, ${me.name.split(' ').first} 👋',
+                      'สวัสดีคุณ ${me.name.split(' ').first}',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
@@ -147,16 +159,14 @@ class StudentHome extends StatelessWidget {
                   ],
                 ),
               ),
-              // โลโก้มุมขวาบน: รูปแมวไข่หวาน
-              const CatAvatar(size: 52),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(40),
             ),
             child: Row(
               children: [
@@ -174,7 +184,10 @@ class StudentHome extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
+          // ป้าย “ทุกปัญหา มีคนรับฟังเสมอ”
+          const AppBanner(image: 'assets/images/banner_listen.png'),
+          const SizedBox(height: 18),
           const Text(
             'เลือกหัวข้อที่ต้องการ',
             style: TextStyle(
@@ -189,7 +202,12 @@ class StudentHome extends StatelessWidget {
               title: c.title,
               subtitle: c.subtitle,
               icon: c.icon,
-              color: c.urgent ? AppColors.urgentSoft : null,
+              // ไอคอนรูปตามแบบ: ฟองแชท (ทั่วไป) / ป้ายเตือน (เร่งด่วน)
+              iconAsset: c.urgent
+                  ? 'assets/images/icon_warning.png'
+                  : 'assets/images/icon_chat.png',
+              // ส้มใช้เฉพาะเรื่องเร่งด่วน
+              color: c.urgent ? AppColors.orange : null,
               onTap: () => c.urgent
                   // เร่งด่วน: ไม่ต้องเลือกเจ้าหน้าที่ ส่งถึงเจ้าหน้าที่ทุกคนแล้วเข้าแชทเลย
                   ? openChat(context, category: c)
@@ -223,6 +241,8 @@ class ConsultChannelScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          const AppBanner(image: 'assets/images/banner_listen.png'),
+          const SizedBox(height: 18),
           const StepHeader(
             title: 'อยากถามตอบแบบไหน?',
             caption: 'เจอพี่ตัวจริงที่ห้อง หรือคุยผ่านแอปก็ได้',
@@ -283,6 +303,8 @@ class ConsultModeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          const AppBanner(image: 'assets/images/banner_kaiwan.png'),
+          const SizedBox(height: 18),
           StepHeader(
             title: inPerson ? 'อยากนัดกับพี่คนไหน?' : 'เลือกรูปแบบการถามคอบ',
             caption: inPerson
@@ -353,7 +375,7 @@ class StaffPickerScreen extends StatelessWidget {
           ),
           for (final s in store.staff)
             OrangeCard(
-              leading: StaffAvatar(user: s, size: 54),
+              leading: StaffAvatar(user: s, size: 72),
               title: s.displayName,
               // แสดงแค่รูป + ชื่อ (ไม่แสดงความเชี่ยวชาญ/สถานะออนไลน์)
               onTap: () => inPerson
@@ -409,10 +431,9 @@ class MyChatsScreen extends StatelessWidget {
               ),
             );
           }
-          return ListView.separated(
+          return ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: list.length,
-            separatorBuilder: (_, _) => const Divider(height: 1, indent: 84),
             itemBuilder: (context, i) =>
                 ConversationTile(conv: list[i], forStaff: false),
           );
@@ -424,8 +445,8 @@ class MyChatsScreen extends StatelessWidget {
 
 /// แถวรายการแชท 1 ห้อง ใช้ทั้งสองฝั่ง ([forStaff] = มุมมองเจ้าหน้าที่)
 /// แสดงชื่ออีกฝ่าย, หัวข้อ (เร่งด่วนเป็นสีแดง), ข้อความล่าสุด, เวลา และเลขที่ยังไม่อ่าน
-/// ฝั่งนักศึกษา: ห้องที่มีข้อความใหม่พื้นหลังเหลืองทองอ่อน
-/// ฝั่งเจ้าหน้าที่: พื้นหลังตามหัวข้อ เร่งด่วน = แดงอ่อน, ทั่วไป = เขียวอ่อน
+/// แสดงเป็นการ์ดมุมโค้ง สีตามหัวข้อ: เร่งด่วน = ส้ม, ทั่วไป = เหลืองอ่อน
+/// ฝั่งนักศึกษา: ห้องทั่วไปที่มีข้อความใหม่ใช้เหลืองเข้มขึ้น
 /// ห้องที่จบแล้ว (ฝั่งเจ้าหน้าที่) แสดงสรุปการปรึกษาแทนข้อความล่าสุด
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
@@ -453,13 +474,14 @@ class ConversationTile extends StatelessWidget {
         ? 'แชทรวมเจ้าหน้าที่'
         : (other?.displayName ?? 'พี่ไข่หวาน (คนไหนก็ได้)');
     final last = conv.last;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      // ฝั่งเจ้าหน้าที่: แยกหัวข้อด้วยสีพื้นหลัง (เร่งด่วน = แดงอ่อน, ทั่วไป = เขียวอ่อน)
-      // ฝั่งนักศึกษา: ไฮไลต์เหลืองทองอ่อนเมื่อมีข้อความใหม่
-      tileColor: forStaff
-          ? (cat.urgent ? AppColors.urgentSoft : AppColors.generalSoft)
-          : (unread > 0 ? AppColors.honey.withValues(alpha: 0.15) : null),
+    // สีการ์ด: ส้มเฉพาะเรื่องเร่งด่วน, ทั่วไปเหลืองอ่อน (มีข้อความใหม่ฝั่งนักศึกษา = เหลืองเข้ม)
+    final color = cat.urgent
+        ? AppColors.orange
+        : (!forStaff && unread > 0
+              ? AppColors.yellowDeep
+              : AppColors.yellowLight);
+    final tile = ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       leading: sharedForStudent
           ? const CatAvatar(size: 52)
           : other != null
@@ -480,10 +502,10 @@ class ConversationTile extends StatelessWidget {
               cat.urgent
                   ? '🚨 ${cat.title}'
                   : '${cat.title}${conv.isSpecific ? ' · ส่วนตัว' : ''}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: cat.urgent ? AppColors.alert : AppColors.caramel,
-                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+                fontWeight: FontWeight.w700,
               ),
             ),
           // ประวัติฝั่งเจ้าหน้าที่: แสดงสรุปการปรึกษาแทนข้อความล่าสุด
@@ -496,7 +518,10 @@ class ConversationTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: conv.hasSummary ? AppColors.ink : AppColors.alert,
+                color: AppColors.ink,
+                fontWeight: conv.hasSummary
+                    ? FontWeight.normal
+                    : FontWeight.w700,
               ),
             )
           else if (last != null)
@@ -517,7 +542,7 @@ class ConversationTile extends StatelessWidget {
           if (last != null)
             Text(
               timeLabel(last.time),
-              style: const TextStyle(fontSize: 11, color: AppColors.muted),
+              style: const TextStyle(fontSize: 11, color: AppColors.ink),
             ),
           const SizedBox(height: 4),
           if (unread > 0)
@@ -525,13 +550,22 @@ class ConversationTile extends StatelessWidget {
           else if (conv.closed)
             const Text(
               'จบแล้ว',
-              style: TextStyle(fontSize: 11, color: AppColors.muted),
+              style: TextStyle(fontSize: 11, color: AppColors.ink),
             ),
         ],
       ),
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => ChatScreen(conversationId: conv.id)),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: tile,
       ),
     );
   }

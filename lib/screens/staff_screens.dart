@@ -140,13 +140,13 @@ class StaffHome extends StatelessWidget {
               _Stat(
                 label: 'ให้การช่วยเหลือเร่งด่วนแล้ว',
                 value: urgentDone,
-                color: AppColors.alert,
+                background: AppColors.orange,
               ),
               const SizedBox(width: 12),
               _Stat(
                 label: 'ให้คำตอบเรื่องทั่วไปแล้ว',
                 value: generalDone,
-                color: AppColors.info,
+                background: AppColors.yellowLight,
               ),
             ],
           ),
@@ -167,7 +167,12 @@ class StaffHome extends StatelessWidget {
                       '${done.length} การสนทนาที่จบแล้ว'
                       '${noSummary > 0 ? ' · ยังไม่สรุป $noSummary' : ''}',
                   icon: c.icon,
-                  color: c.urgent ? AppColors.urgentSoft : null,
+                  // ไอคอนรูปเดียวกับหน้าแรกนักศึกษา: ฟองแชท / ป้ายเตือน
+                  iconAsset: c.urgent
+                      ? 'assets/images/icon_warning.png'
+                      : 'assets/images/icon_chat.png',
+                  // ส้มเฉพาะเรื่องเร่งด่วน, ทั่วไปเหลืองอ่อน
+                  color: c.urgent ? AppColors.orange : AppColors.yellowLight,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -188,6 +193,7 @@ class StaffHome extends StatelessWidget {
             title: 'ตารางสรุปเคส',
             subtitle: 'เคสของฉัน · export CSV / PDF',
             icon: Icons.table_chart_rounded,
+            color: AppColors.yellowLight,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const StaffReportScreen()),
@@ -200,35 +206,40 @@ class StaffHome extends StatelessWidget {
 }
 
 /// การ์ดตัวเลขสรุป (ตัวเลขใหญ่ + คำอธิบาย) บนหน้าแรกเจ้าหน้าที่
+/// สีพื้นตามหัวข้อ: เร่งด่วน = ส้ม, ทั่วไป = เหลืองอ่อน
 class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value, required this.color});
+  const _Stat({
+    required this.label,
+    required this.value,
+    required this.background,
+  });
   final String label;
   final int value;
-  final Color color;
+  final Color background;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: background,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '$value',
-              style: TextStyle(
-                fontSize: 28,
+              style: const TextStyle(
+                fontSize: 30,
                 fontWeight: FontWeight.w800,
-                color: color,
+                color: AppColors.ink,
               ),
             ),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              style: const TextStyle(fontSize: 12, color: AppColors.ink),
             ),
           ],
         ),
@@ -350,25 +361,12 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
                     ),
                   );
                 }
-                // เส้นคั่นแต่ละแถว: สีเข้มเต็มความกว้าง แบบเดียวกับขอบปุ่มกรองด้านบน
-                // มีเส้นบนแถวแรกและใต้แถวสุดท้ายด้วย
-                final line = Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Theme.of(context).colorScheme.outline,
-                );
-                return ListView.separated(
+                // การ์ดมุมโค้ง สีตามหัวข้อ (เร่งด่วน = ส้ม, ทั่วไป = เหลืองอ่อน)
+                return ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: list.length,
-                  separatorBuilder: (_, _) => line,
-                  itemBuilder: (_, i) => Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (i == 0) line,
+                  itemBuilder: (_, i) =>
                       ConversationTile(conv: list[i], forStaff: true),
-                      if (i == list.length - 1) line,
-                    ],
-                  ),
                 );
               },
             ),

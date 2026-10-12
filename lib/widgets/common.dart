@@ -6,8 +6,9 @@ import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 
-/// การ์ดเมนูสีพีชที่ใช้ในทุกหน้าเลือก (หมวด / เรื่อง / รูปแบบการปรึกษา / เลือกพี่)
-/// - ใส่ [icon] หรือ [leading] (เช่นรูปเจ้าหน้าที่) ได้ทางซ้าย
+/// การ์ดเมนูสีเหลืองเข้มที่ใช้ในทุกหน้าเลือก (หมวด / เรื่อง / รูปแบบการปรึกษา / เลือกพี่)
+/// - ใส่ [icon], [iconAsset] (รูปไอคอน) หรือ [leading] (เช่นรูปเจ้าหน้าที่) ได้ทางซ้าย
+/// - [label] = หัวข้อเล็กเหนือการ์ด (ตามแบบ)
 ///   ถ้าไม่ใส่ทั้งคู่ ข้อความจะจัดกึ่งกลางเหมือนในไฟล์ UX/UI
 /// - [badge] > 0 จะแสดงกระดิ่ง + ตัวเลขสีแดงที่มุมขวาบน (แจ้งเตือนฝั่งเจ้าหน้าที่)
 /// - ไม่ใส่ [onTap] = กดไม่ได้ และจะไม่มีลูกศร >
@@ -21,7 +22,15 @@ class OrangeCard extends StatelessWidget {
     this.badge = 0,
     this.onTap,
     this.color,
+    this.iconAsset,
+    this.label,
   });
+
+  /// รูปไอคอนจาก assets (ใช้แทน [icon]) เช่น รูปฟองแชท / ป้ายเตือน
+  final String? iconAsset;
+
+  /// หัวข้อเล็กเหนือการ์ด
+  final String? label;
 
   final String title;
   final String? subtitle;
@@ -30,94 +39,112 @@ class OrangeCard extends StatelessWidget {
   final int badge;
   final VoidCallback? onTap;
 
-  /// สีพื้นการ์ด (ไม่ใส่ = สีพีชปกติ) เช่น หัวข้อเร่งด่วนใช้สีแดงอ่อน
+  /// สีพื้นการ์ด (ไม่ใส่ = เหลืองเข้มปกติ) เช่น หัวข้อเร่งด่วนใช้สีส้ม
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14, right: 8),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Material(
-            color: color ?? AppColors.peach,
-            borderRadius: BorderRadius.circular(16),
-            elevation: 0,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 78),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-                child: Row(
-                  children: [
-                    if (leading != null) ...[
-                      leading!,
-                      const SizedBox(width: 14),
-                    ],
-                    if (leading == null && icon != null) ...[
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(icon, color: AppColors.ink),
+    final hasLeading = leading != null || icon != null || iconAsset != null;
+    final card = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: color ?? AppColors.peach,
+          borderRadius: BorderRadius.circular(24),
+          elevation: 0,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 84),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: Row(
+                children: [
+                  if (leading != null) ...[leading!, const SizedBox(width: 14)],
+                  if (leading == null && iconAsset != null) ...[
+                    Image.asset(iconAsset!, width: 46, height: 46),
+                    const SizedBox(width: 14),
+                  ],
+                  if (leading == null && iconAsset == null && icon != null) ...[
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 14),
-                    ],
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: (leading == null && icon == null)
-                            ? CrossAxisAlignment.center
-                            : CrossAxisAlignment.start,
-                        children: [
+                      child: Icon(icon, color: AppColors.ink),
+                    ),
+                    const SizedBox(width: 14),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: hasLeading
+                          ? CrossAxisAlignment.start
+                          : CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          title,
+                          textAlign: hasLeading
+                              ? TextAlign.start
+                              : TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            title,
-                            textAlign: (leading == null && icon == null)
-                                ? TextAlign.center
-                                : TextAlign.start,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ink,
+                            subtitle!,
+                            textAlign: hasLeading
+                                ? TextAlign.start
+                                : TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.ink.withValues(alpha: 0.7),
                             ),
                           ),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle!,
-                              textAlign: (leading == null && icon == null)
-                                  ? TextAlign.center
-                                  : TextAlign.start,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.ink.withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
+                      ],
                     ),
-                    if (onTap != null)
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.ink.withValues(alpha: 0.5),
-                      ),
-                  ],
-                ),
+                  ),
+                  if (onTap != null)
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.ink.withValues(alpha: 0.5),
+                    ),
+                ],
               ),
             ),
           ),
-          if (badge > 0)
-            Positioned(right: -8, top: -12, child: BellBadge(count: badge)),
-        ],
-      ),
+        ),
+        if (badge > 0)
+          Positioned(right: -8, top: -12, child: BellBadge(count: badge)),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16, right: 8),
+      child: label == null
+          ? card
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 6),
+                  child: Text(
+                    label!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+                card,
+              ],
+            ),
     );
   }
 }
@@ -179,7 +206,9 @@ class BellBadge extends StatelessWidget {
 }
 
 /// รูปโปรไฟล์วงกลม
-/// เจ้าหน้าที่ = รูปจริงจาก [AppStore.staffPhotos] (ถ้าไม่มีรูปใช้ emoji 👩🏻‍💼), นักศึกษา = รูปแมวไข่หวาน
+/// เจ้าหน้าที่ = รูปจริงจาก [AppStore.staffPhotos] (ถ้าไม่มีรูปใช้ emoji 👩🏻‍💼)
+/// นักศึกษา = รูปแมวโบกมือ [studentAvatarImage] บนพื้นขาว (เห็นเฉพาะฝั่งเจ้าหน้าที่:
+/// รายการแชท หัวห้องแชท บับเบิล และแผ่นโปรไฟล์นิสิต)
 class StaffAvatar extends StatelessWidget {
   const StaffAvatar({super.key, required this.user, this.size = 48});
   final AppUser user;
@@ -195,11 +224,11 @@ class StaffAvatar extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: user.avatarColor,
+            color: user.isStaff ? user.avatarColor : AppColors.surface,
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          // นักศึกษา (ผู้มาปรึกษา) ใช้รูปแมวไข่หวานทั้งหมด
+          // นักศึกษา (ผู้มาปรึกษา) ใช้รูปแมวโบกมือทั้งหมด
           // เจ้าหน้าที่ใช้รูปจริง ถ้าไม่มีรูป (หรือโหลดไม่ได้) ใช้ emoji แทน
           child: user.isStaff
               ? (photo == null
@@ -213,14 +242,9 @@ class StaffAvatar extends StatelessWidget {
                           errorBuilder: (_, _, _) => emoji,
                         ),
                       ))
-              : ClipOval(
-                  child: Image.asset(
-                    kaiwanCatImage,
-                    width: size,
-                    height: size,
-                    fit: BoxFit.cover,
-                    alignment: const Alignment(0, -0.25),
-                  ),
+              : Padding(
+                  padding: EdgeInsets.all(size * 0.08),
+                  child: Image.asset(studentAvatarImage),
                 ),
         ),
       ],
@@ -298,8 +322,11 @@ String timeRange(DateTime start) {
   return '${hm(start)}–${hm(start.add(const Duration(minutes: 30)))}';
 }
 
-/// รูปแมวไข่หวาน (หน้าสมัครสมาชิก, License Agreement, รูปของแชทรวมเจ้าหน้าที่)
+/// รูปแมวไข่หวาน: รูปของ “แชทรวมเจ้าหน้าที่” ที่นิสิตเห็น (ใช้ผ่าน [CatAvatar])
 const kaiwanCatImage = 'assets/images/kaiwan_cat.png';
+
+/// รูปแมวโบกมือ: รูปโปรไฟล์ของนิสิต (ใช้ผ่าน [StaffAvatar] และหน้าโปรไฟล์นิสิต)
+const studentAvatarImage = 'assets/images/cat_wave.png';
 
 /// รูปแมวไข่หวานในกรอบวงกลม (ครอปให้ตัวแมวอยู่กลาง)
 class CatAvatar extends StatelessWidget {
@@ -311,24 +338,13 @@ class CatAvatar extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
+      // พื้นวงกลมสีขาว แมวอยู่กลางวง เห็นครบทั้งตัว (รูปครอปเป็นสี่เหลี่ยมจัตุรัสแล้ว)
+      padding: EdgeInsets.all(size * 0.1),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.caramel.withValues(alpha: 0.18),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
-      child: ClipOval(
-        child: Image.asset(
-          kaiwanCatImage,
-          fit: BoxFit.cover,
-          // รูปต้นฉบับแมวอยู่ค่อนไปทางบน เลื่อนจุดกึ่งกลางขึ้นเล็กน้อย
-          alignment: const Alignment(0, -0.25),
-        ),
-      ),
+      child: Image.asset(kaiwanCatImage, fit: BoxFit.contain),
     );
   }
 }
@@ -376,4 +392,83 @@ class HomeButton extends StatelessWidget {
     icon: const Icon(Icons.home_outlined),
     onPressed: () => goHome(context),
   );
+}
+
+/// แผงสีเหลืองที่ขอบบนโค้งขึ้นเป็นเนิน (หน้า Login / สมัครสมาชิก ตามแบบ)
+class YellowArcPanel extends StatelessWidget {
+  const YellowArcPanel({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipPath(
+      clipper: _ArcTopClipper(),
+      child: Container(
+        width: double.infinity,
+        color: AppColors.yellow,
+        padding: const EdgeInsets.fromLTRB(28, 64, 28, 28),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// ตัดขอบบนเป็นเส้นโค้ง: มุมซ้าย/ขวาต่ำกว่า กลางนูนขึ้น
+class _ArcTopClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    const rise = 44.0;
+    return Path()
+      ..moveTo(0, rise)
+      ..quadraticBezierTo(size.width / 2, -rise, size.width, rise)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// ปุ่มหลักทรงแคปซูลสีดำ ความกว้างพอดีข้อความ (ปุ่ม login / sign in / ยอมรับ)
+class PillButton extends StatelessWidget {
+  const PillButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.color = AppColors.caramel,
+    this.foreground = Colors.white,
+  });
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Color color;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: FilledButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: foreground,
+        minimumSize: const Size(180, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 36),
+      ),
+      onPressed: onPressed,
+      child: child,
+    );
+  }
+}
+
+/// ป้ายกราฟิกด้านบนของหน้า (เช่น “ทุกปัญหา มีคนรับฟังเสมอ”) มุมโค้ง กว้างเต็มแถว
+class AppBanner extends StatelessWidget {
+  const AppBanner({super.key, required this.image});
+  final String image;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Image.asset(image, width: double.infinity, fit: BoxFit.fitWidth),
+    );
+  }
 }

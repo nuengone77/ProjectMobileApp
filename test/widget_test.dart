@@ -22,6 +22,22 @@ Future<void> loginAs(WidgetTester tester, String email) async {
   await tester.pumpAndSettle(const Duration(seconds: 1));
 }
 
+/// เลื่อนให้เห็นก่อนแล้วค่อยแตะ (หน้าเลือกมีป้ายกราฟิกด้านบน การ์ดอาจอยู่ต่ำกว่าจอ)
+Future<void> tapText(WidgetTester tester, String text) async {
+  // รายการยาวสร้างเฉพาะส่วนที่ใกล้จอ ถ้ายังไม่ถูกสร้างให้เลื่อนลงไปหาก่อน
+  if (find.text(text).evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      find.text(text),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+  }
+  final f = find.text(text).first;
+  await tester.ensureVisible(f);
+  await tester.pumpAndSettle();
+  await tester.tap(f);
+}
+
 /// ล็อกอินเป็นนักศึกษาทดลองผ่านหน้า Login
 Future<void> loginAsStudent(WidgetTester tester) =>
     loginAs(tester, 'somjaij67@nu.ac.th');
@@ -42,12 +58,13 @@ void main() {
     expect(find.text('ขอความช่วยเหลือแบบเร่งด่วน'), findsOneWidget);
 
     // ทั่วไป -> ผ่านแอป -> เลือกเจาะจง -> เจ้าหน้าที่คนที่ 1 -> แชท
-    await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
+    await tapText(tester, 'ถาม/ตอบเรื่องทั่วไป');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน'));
+    await tapText(tester, 'ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน');
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+    await tapText(
+      tester,
+      'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text(shown(staff1)));
@@ -91,12 +108,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('หน้าแรก'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
+    await tapText(tester, 'ถาม/ตอบเรื่องทั่วไป');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน'));
+    await tapText(tester, 'ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน');
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+    await tapText(
+      tester,
+      'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text(shown(staff3)));
@@ -149,7 +167,7 @@ void main() {
     tester,
   ) async {
     await loginAsStudent(tester);
-    await tester.tap(find.text('ขอความช่วยเหลือแบบเร่งด่วน'));
+    await tapText(tester, 'ขอความช่วยเหลือแบบเร่งด่วน');
     await tester.pumpAndSettle();
     // ข้อความอัตโนมัติแจ้งเบอร์ฉุกเฉินขึ้นทันที
     expect(find.text(AppStore.emergencyMessage), findsOneWidget);
@@ -204,12 +222,12 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await loginAsStudent(tester);
-    await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
+    await tapText(tester, 'ถาม/ตอบเรื่องทั่วไป');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต'));
+    await tapText(tester, 'ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต');
     await tester.pumpAndSettle();
     // ที่ห้อง -> คนไหนก็ได้ (แจ้งเตือนทุกคน) -> หน้าจอง
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)'));
+    await tapText(tester, 'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)');
     await tester.pumpAndSettle();
     expect(find.byType(CalendarDatePicker), findsOneWidget);
     expect(find.text('นัดกับพี่ไข่หวานคนไหนก็ได้'), findsOneWidget);
@@ -258,12 +276,13 @@ void main() {
     tester,
   ) async {
     await loginAsStudent(tester);
-    await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
+    await tapText(tester, 'ถาม/ตอบเรื่องทั่วไป');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต'));
+    await tapText(tester, 'ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต');
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+    await tapText(
+      tester,
+      'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text(shown(staff2)));

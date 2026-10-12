@@ -380,9 +380,7 @@ class _TopicBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: urgent
-          ? AppColors.urgentSoft
-          : AppColors.honey.withValues(alpha: 0.35),
+      color: urgent ? AppColors.orange : AppColors.yellowLight,
       child: Row(
         children: [
           Icon(
@@ -392,7 +390,7 @@ class _TopicBanner extends StatelessWidget {
                 ? Icons.lock_person_outlined
                 : Icons.groups_outlined,
             size: 18,
-            color: urgent ? AppColors.alert : AppColors.ink,
+            color: AppColors.ink,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -670,10 +668,10 @@ class _AlertNote extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Material(
-        color: AppColors.urgentSoft,
+        color: AppColors.orange,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: BorderSide(color: AppColors.alert.withValues(alpha: 0.4)),
+          side: const BorderSide(color: AppColors.orange),
         ),
         child: InkWell(
           borderRadius: radius,
@@ -682,7 +680,7 @@ class _AlertNote extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                const Icon(Icons.phone_in_talk_rounded, color: AppColors.alert),
+                const Icon(Icons.phone_in_talk_rounded, color: AppColors.ink),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -691,19 +689,19 @@ class _AlertNote extends StatelessWidget {
                       Text(
                         text,
                         style: const TextStyle(
-                          color: AppColors.alert,
+                          color: AppColors.ink,
                           fontWeight: FontWeight.w700,
                           height: 1.4,
                         ),
                       ),
                       const Text(
                         'แตะเพื่อโทร',
-                        style: TextStyle(fontSize: 12, color: AppColors.alert),
+                        style: TextStyle(fontSize: 12, color: AppColors.ink),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.alert),
+                const Icon(Icons.chevron_right, color: AppColors.ink),
               ],
             ),
           ),

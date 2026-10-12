@@ -228,7 +228,7 @@ class _PdfPage extends StatelessWidget {
               },
               children: [
                 TableRow(
-                  decoration: const BoxDecoration(color: Color(0xFFFCE3BE)),
+                  decoration: const BoxDecoration(color: Color(0xFFFFD26F)),
                   children: [
                     for (final h in ReportExport.headers) cell(h, header: true),
                   ],

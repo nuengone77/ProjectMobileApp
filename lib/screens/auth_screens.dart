@@ -52,90 +52,128 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ส่วนบนขาว = โลโก้, ส่วนล่างเหลือง (ขอบบนโค้ง) = ช่องกรอก + ปุ่ม
     return Scaffold(
-      backgroundColor: AppColors.cream,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Column(
-              children: [
-                Image.asset(_loginLogo, height: 170, fit: BoxFit.contain),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  textAlign: TextAlign.center,
-                  decoration: const InputDecoration(hintText: 'Email'),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _password,
-                  obscureText: _obscure,
-                  textAlign: TextAlign.center,
-                  onSubmitted: (_) => _login(),
-                  decoration: InputDecoration(
-                    hintText: 'password',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscure
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
+      backgroundColor: AppColors.surface,
+      body: LayoutBuilder(
+        builder: (context, box) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: box.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  SizedBox(height: MediaQuery.paddingOf(context).top + 40),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Image.asset(
+                      _loginLogo,
+                      height: 160,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Expanded(
+                    child: YellowArcPanel(
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                            textAlign: TextAlign.center,
+                            decoration: const InputDecoration(
+                              hintText: 'Email',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _password,
+                            obscureText: _obscure,
+                            textAlign: TextAlign.center,
+                            onSubmitted: (_) => _login(),
+                            decoration: InputDecoration(
+                              hintText: 'password',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
+                              ),
+                              // เว้นซ้ายเท่าไอคอนตา ให้ข้อความอยู่กึ่งกลางจริง
+                              prefixIcon: const SizedBox(width: 48),
+                            ),
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.alert,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          PillButton(
+                            onPressed: _loading ? null : _login,
+                            child: _loading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('login'),
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SignUpScreen(),
+                              ),
+                            ),
+                            child: const Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'ยังไม่มีบัญชี? ',
+                                    style: TextStyle(
+                                      color: AppColors.ink,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  // ตัวหนากว่า “ยังไม่มีบัญชี?” (ตัวปกติ) ให้เห็นชัดว่ากดได้
+                                  TextSpan(
+                                    text: 'สมัครสมาชิก (sign in)',
+                                    style: TextStyle(
+                                      color: AppColors.ink,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const Text(
+                            'แอพพลิเคชันนี้ใช้ได้เฉพาะนิสิตของคณะวิทยาศาสตร์',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                        ],
                       ),
-                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
-                    // เว้นซ้ายเท่าไอคอนตา ให้ข้อความอยู่กึ่งกลางจริง
-                    prefixIcon: const SizedBox(width: 48),
                   ),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: AppColors.alert)),
                 ],
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _loading ? null : _login,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('login'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SignUpScreen()),
-                  ),
-                  child: const Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'ยังไม่มีบัญชี? ',
-                          style: TextStyle(color: AppColors.muted),
-                        ),
-                        TextSpan(
-                          text: 'สมัครสมาชิก (sign in)',
-                          style: TextStyle(
-                            color: AppColors.caramel,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const Text(
-                  'แอพพลิเคชันนี้ใช้ได้เฉพาะนิสิตของคณะวิทยาศาสตร์',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.muted),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -266,119 +304,130 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final digitsOnly = [FilteringTextInputFormatter.digitsOnly];
+    // แบบเดียวกับหน้า Login: ส่วนบนขาว = โลโก้, ส่วนล่างเหลือง (ขอบบนโค้ง) = ฟอร์มสมัคร
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.cream,
+        backgroundColor: AppColors.surface,
         title: const Text('sign in'),
       ),
-      body: SafeArea(
-        child: Form(
-          key: _form,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-            children: [
-              const Center(child: CatAvatar(size: 96)),
-              const SizedBox(height: 10),
-              const Text(
-                'ไข่หวานช่วยด้วย',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.ink,
-                ),
-              ),
-              const Text(
-                'คุยกับพี่ไข่หวานได้ทุกเรื่อง',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.muted),
-              ),
-              const SizedBox(height: 24),
-              _field(
-                _email,
-                'Email',
-                keyboard: TextInputType.emailAddress,
-                // อีเมลมหาลัย @nu.ac.th และต้องตรงกับชื่ออังกฤษ + รหัสนิสิต (ดู registration_rules.dart)
-                validator: (v) => RegistrationRules.emailError(
-                  v,
-                  nameEn: _nameEn.text,
-                  studentId: _studentId.text,
-                ),
-              ),
-              _field(
-                _password,
-                'password',
-                obscure: true,
-                validator: (v) => (v == null || v.length < 4)
-                    ? 'รหัสผ่านอย่างน้อย 4 ตัวอักษร'
-                    : null,
-              ),
-              _field(
-                _studentId,
-                'รหัสนิสิต',
-                keyboard: TextInputType.number,
-                formatters: [
-                  ...digitsOnly,
-                  LengthLimitingTextInputFormatter(8),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              color: AppColors.surface,
+              padding: const EdgeInsets.fromLTRB(28, 4, 28, 20),
+              child: Column(
+                children: [
+                  Image.asset(_loginLogo, height: 110, fit: BoxFit.contain),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'คุยกับพี่ไข่หวานได้ทุกเรื่อง',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.muted),
+                  ),
                 ],
-                validator: RegistrationRules.studentIdError,
               ),
-              _field(_name, 'ชื่อ-สกุล'),
-              _field(
-                _nameEn,
-                'ชื่อ-สกุล (ภาษาอังกฤษ)',
-                keyboard: TextInputType.name,
-                validator: RegistrationRules.nameEnError,
-              ),
-              _field(
-                _phone,
-                'เบอร์โทรศัพท์',
-                keyboard: TextInputType.phone,
-                formatters: [
-                  ...digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
+            ),
+            YellowArcPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _field(
+                    _email,
+                    'Email',
+                    keyboard: TextInputType.emailAddress,
+                    // อีเมลมหาลัย @nu.ac.th และต้องตรงกับชื่ออังกฤษ + รหัสนิสิต (ดู registration_rules.dart)
+                    validator: (v) => RegistrationRules.emailError(
+                      v,
+                      nameEn: _nameEn.text,
+                      studentId: _studentId.text,
+                    ),
+                  ),
+                  _field(
+                    _password,
+                    'password',
+                    obscure: true,
+                    validator: (v) => (v == null || v.length < 4)
+                        ? 'รหัสผ่านอย่างน้อย 4 ตัวอักษร'
+                        : null,
+                  ),
+                  _field(
+                    _studentId,
+                    'รหัสนิสิต',
+                    keyboard: TextInputType.number,
+                    formatters: [
+                      ...digitsOnly,
+                      LengthLimitingTextInputFormatter(8),
+                    ],
+                    validator: RegistrationRules.studentIdError,
+                  ),
+                  _field(_name, 'ชื่อ-สกุล'),
+                  _field(
+                    _nameEn,
+                    'ชื่อ-สกุล (ภาษาอังกฤษ)',
+                    keyboard: TextInputType.name,
+                    validator: RegistrationRules.nameEnError,
+                  ),
+                  _field(
+                    _phone,
+                    'เบอร์โทรศัพท์',
+                    keyboard: TextInputType.phone,
+                    formatters: [
+                      ...digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    validator: (v) => (v == null || !AppStore.isValidPhone(v))
+                        ? 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'
+                        : null,
+                  ),
+                  // ภาควิชา -> สาขา (รายการสาขาเปลี่ยนตามภาควิชาที่เลือก)
+                  _choice(
+                    hint: 'ภาควิชา',
+                    value: _department,
+                    options: AppStore.departments.keys.toList(),
+                    onChanged: (v) => setState(() {
+                      _department = v;
+                      _major = null; // เปลี่ยนภาควิชาแล้วให้เลือกสาขาใหม่
+                    }),
+                    error: 'กรุณาเลือกภาควิชา',
+                  ),
+                  const SizedBox(height: 14),
+                  _choice(
+                    // key ตามภาควิชา: เปลี่ยนภาควิชาแล้วล้างสาขาที่เลือกไว้
+                    key: ValueKey(_department),
+                    hint: _department == null
+                        ? 'สาขา (เลือกภาควิชาก่อน)'
+                        : 'สาขา',
+                    value: _major,
+                    options: AppStore.departments[_department] ?? const [],
+                    onChanged: _department == null
+                        ? null
+                        : (v) => setState(() => _major = v),
+                    error: 'กรุณาเลือกสาขา',
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.alert),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  Center(
+                    child: PillButton(
+                      onPressed: _submit,
+                      child: const Text('sign in'),
+                    ),
+                  ),
+                  SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom),
                 ],
-                validator: (v) => (v == null || !AppStore.isValidPhone(v))
-                    ? 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'
-                    : null,
               ),
-              // ภาควิชา -> สาขา (รายการสาขาเปลี่ยนตามภาควิชาที่เลือก)
-              _choice(
-                hint: 'ภาควิชา',
-                value: _department,
-                options: AppStore.departments.keys.toList(),
-                onChanged: (v) => setState(() {
-                  _department = v;
-                  _major = null; // เปลี่ยนภาควิชาแล้วให้เลือกสาขาใหม่
-                }),
-                error: 'กรุณาเลือกภาควิชา',
-              ),
-              const SizedBox(height: 14),
-              _choice(
-                // key ตามภาควิชา: เปลี่ยนภาควิชาแล้วล้างสาขาที่เลือกไว้
-                key: ValueKey(_department),
-                hint: _department == null ? 'สาขา (เลือกภาควิชาก่อน)' : 'สาขา',
-                value: _major,
-                options: AppStore.departments[_department] ?? const [],
-                onChanged: _department == null
-                    ? null
-                    : (v) => setState(() => _major = v),
-                error: 'กรุณาเลือกสาขา',
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.alert),
-                ),
-              ],
-              const SizedBox(height: 24),
-              FilledButton(onPressed: _submit, child: const Text('sign in')),
-              const SizedBox(height: 12),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -462,98 +511,99 @@ class LicenseAgreementDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ตามแบบ: พื้นครีม FFF8E8 มีรูปทรงเหลืองย้อยลงจากด้านบน
+    // แมวไข่หวานถือโทรโข่งเกาะขอบกล่องข้อความ ปุ่มปฏิเสธ (เทา) / ยอมรับ (ดำ)
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.cream,
+      clipBehavior: Clip.antiAlias,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 640),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 680),
+        child: Stack(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(
-                'ขอความยินยอมในการเข้าถึงข้อมูลและนโยบายความเป็นส่วนตัว',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            // รูปทรงเหลืองย้อยด้านบน (กราฟิกตกแต่ง) ให้ชิดขอบบน/ซ้าย/ขวาของกล่อง
+            // เลยขอบออกไปเล็กน้อย ส่วนปลายมนของรูปจะถูกตัดด้วยมุมโค้งของกล่องพอดี
+            Positioned(
+              top: -2,
+              left: -12,
+              right: -12,
+              child: Image.asset(
+                'assets/images/shape_drip.png',
+                fit: BoxFit.fitWidth,
+                alignment: Alignment.topCenter,
               ),
             ),
-            const Divider(height: 1),
-            Flexible(
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  // จอกว้าง: รูปซ้าย ข้อความขวา (ตามแบบ) / จอแคบ: รูปบน ข้อความล่าง
-                  final wide = c.maxWidth > 520;
-                  // โลโก้ “ไข่หวานช่วยด้วย” แบบเดียวกับหน้า Login
-                  // contain = แสดงครบทั้งรูปไม่ถูกตัด, จอแคบจัดกึ่งกลาง
-                  final image = Image.asset(
-                    _loginLogo,
-                    fit: BoxFit.contain,
-                    height: wide ? 140 : 100,
-                    width: wide ? 220 : double.infinity,
-                  );
-                  final text = _TermsBox(terms: terms);
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              image,
-                              const SizedBox(width: 16),
-                              Expanded(child: text),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              image,
-                              const SizedBox(height: 12),
-                              Flexible(child: text),
-                            ],
-                          ),
-                  );
-                },
-              ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              // Wrap: จอแคบแล้วปุ่มไม่พอจะขึ้นบรรทัดใหม่แทนการล้นจอ
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 10,
-                runSpacing: 8,
-                children: [
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFE5E5E5),
-                      foregroundColor: AppColors.muted,
-                      minimumSize: const Size(96, 42),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 64),
+                // กล่องข้อตกลง + แมวถือโทรโข่งเกาะมุมขวาบน
+                Flexible(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(16, 30, 16, 0),
+                        padding: const EdgeInsets.fromLTRB(4, 36, 4, 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppColors.yellow, width: 3),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(14, 0, 14, 4),
+                              child: Text(
+                                'ขอความยินยอมในการเข้าถึงข้อมูลและนโยบายความเป็นส่วนตัว',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ),
+                            Flexible(child: _TermsBox(terms: terms)),
+                          ],
+                        ),
                       ),
-                    ),
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('ปฏิเสธ'),
-                  ),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF2EC27E),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(130, 42),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                      Positioned(
+                        top: -24,
+                        right: 8,
+                        child: Image.asset(
+                          'assets/images/cat_megaphone.png',
+                          height: 76,
+                        ),
                       ),
-                    ),
-                    onPressed: () => Navigator.pop(context, true),
-                    iconAlignment: IconAlignment.end,
-                    icon: const Icon(Icons.check, size: 18),
-                    label: const Text('ยอมรับและดำเนินการต่อ'),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  // Wrap: จอแคบแล้วปุ่มไม่พอจะขึ้นบรรทัดใหม่แทนการล้นจอ
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      PillButton(
+                        color: const Color(0xFFBDB8AE),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('ปฏิเสธ'),
+                      ),
+                      PillButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('ยอมรับและดำเนินการต่อ'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -579,11 +629,6 @@ class _TermsBox extends StatelessWidget {
     const body = TextStyle(fontSize: 13, height: 1.5, color: AppColors.muted);
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(4),
-        color: AppColors.cream,
-      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

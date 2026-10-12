@@ -25,7 +25,21 @@ class ProfileScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Center(child: StaffAvatar(user: me, size: 96)),
+              // นิสิต: รูปแมวไข่หวานโบกมือ (แบบเดียวกับหน้าแรก), เจ้าหน้าที่: รูปเจ้าหน้าที่
+              Center(
+                child: me.isStaff
+                    ? StaffAvatar(user: me, size: 96)
+                    : Container(
+                        width: 96,
+                        height: 96,
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Image.asset(studentAvatarImage),
+                      ),
+              ),
               const SizedBox(height: 12),
               Center(
                 child: Text(

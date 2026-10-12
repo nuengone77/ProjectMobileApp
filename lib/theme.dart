@@ -1,50 +1,58 @@
 import 'package:flutter/material.dart';
 
 /// ชุดสีกลางของแอป เปลี่ยนที่นี่ที่เดียวแล้วมีผลทุกหน้า
-/// ธีม: ครีม–น้ำตาล–เหลืองทอง (อ้างอิงสีจาก design/theme_reference.webp)
+/// ธีม: เหลือง – ดำ – ขาว และส้ม (ส้มใช้เฉพาะเรื่องเร่งด่วนเท่านั้น)
+/// อ้างอิงแบบ: ~/Downloads/อธิบายการเปลี่ยนธีม/รูปแบบ Ui_UX ที่จะเปลี่ยน.pdf
 class AppColors {
+  // ---- โทนเหลืองหลัก (โค้ดสีตามแบบ)
+  static const yellow = Color(
+    0xFFFFD26F,
+  ); // พื้นหลังส่วนล่างหน้า login/สมัคร, แถบกรอง, ปุ่มรอง
+  static const yellowDeep = Color(0xFFFFDF60); // การ์ดเมนูหลัก (เหลืองเข้ม)
+  static const yellowLight = Color(
+    0xFFFFF0B3,
+  ); // การ์ดเรื่องทั่วไป (เหลืองอ่อน)
+  static const orange = Color(0xFFFB8600); // เฉพาะเรื่องเร่งด่วน
+
   // ---- พื้นหลัง / พื้นผิว
-  static const cream = Color(0xFFFEF6E9); // พื้นหลังหน้าทั่วไป
-  static const surface = Color(0xFFFFFAF4); // การ์ด/แถบ/แผ่นเลื่อน (ขาวอมครีม)
-  static const peach = Color(0xFFFCE3BE); // การ์ดเมนู (OrangeCard)
-  static const line = Color(0xFFEADBC8); // เส้นขอบ/เส้นคั่นสีอ่อน
-  static const field = Color(0xFFF6EDE1); // พื้นช่องพิมพ์ข้อความในแชท
+  static const cream = Color(0xFFFFF8E8); // พื้นหลังหน้าทั่วไป
+  static const surface = Color(
+    0xFFFFFFFF,
+  ); // การ์ด/แถบ/แผ่นเลื่อน/ช่องกรอก (ขาว)
+  static const peach = yellowDeep; // การ์ดเมนู (OrangeCard) ใช้เหลืองเข้ม
+  static const line = Color(0xFFF1E3BF); // เส้นขอบ/เส้นคั่นสีอ่อน
+  static const field = Color(0xFFFFF4D6); // พื้นช่องพิมพ์ข้อความในแชท
 
   // ---- สีหลัก
-  static const honey = Color(
-    0xFFF5C26B,
-  ); // เหลืองทอง: ตัวที่ถูกเลือก/ไฮไลต์/แถบเมนูที่เลือก
+  static const honey = yellow; // ตัวที่ถูกเลือก/ไฮไลต์/แถบเมนูที่เลือก
   static const caramel = Color(
-    0xFF9A6740,
-  ); // น้ำตาล: ปุ่มหลัก ลิงก์ ไอคอน บับเบิลแชทฝั่งเรา
-  static const ink = Color(0xFF4A3426); // น้ำตาลเข้ม: ตัวอักษรหลัก/หัวข้อ
-  static const muted = Color(0xFF9C8670); // ตัวอักษรรอง/คำอธิบาย
+    0xFF1C1C1C,
+  ); // ดำ: ปุ่มหลัก ลิงก์ ไอคอน บับเบิลแชทฝั่งเรา
+  static const ink = Color(0xFF1C1C1C); // ดำ: ตัวอักษรหลัก/หัวข้อ
+  static const muted = Color(0xFF7D7466); // เทาอมน้ำตาล: ตัวอักษรรอง/คำอธิบาย
 
   // ---- แชท
-  static const bubbleOther = Color(
-    0xFFF3E6D3,
-  ); // บับเบิลแชทฝั่งอีกคน (ครีมเข้ม)
+  static const bubbleOther = yellowLight; // บับเบิลแชทฝั่งอีกคน
 
-  // ---- สีที่มีความหมาย (คงไว้ตามที่ตกลง ไม่เปลี่ยนตามธีม)
-  static const alert = Color(0xFFE53935); // แดง: แจ้งเตือน/เร่งด่วน/error
-  static const info = Color(
-    0xFF2F7FD1,
-  ); // น้ำเงิน: ตัวเลขให้คำปรึกษาทั่วไป (หน้าภาพรวม)
-  // แดงอ่อน: พื้นหลังหัวข้อ/ห้องเร่งด่วน
-  static const urgentSoft = Color(0xFFFFD9D6);
-  // เขียวอ่อน: พื้นหลังแชทถาม/ตอบทั่วไป (ฝั่งเจ้าหน้าที่)
-  static const generalSoft = Color(0xFFE2F3DF);
+  // ---- สีที่มีความหมาย
+  static const alert = Color(0xFFE53935); // แดง: error / ปุ่มออกจากระบบ / ลบ
+  static const info = Color(0xFF1C1C1C); // ตัวเลขเรื่องทั่วไป (หน้าภาพรวม)
+  static const urgentSoft =
+      orange; // พื้นหลังห้อง/การ์ดเร่งด่วน (ฝั่งเจ้าหน้าที่)
+  static const generalSoft =
+      yellowLight; // พื้นหลังห้อง/การ์ดเรื่องทั่วไป (ฝั่งเจ้าหน้าที่)
 }
 
 /// ธีมหลักของแอป (Material 3)
-/// - ช่องกรอกข้อมูลเป็นทรงแคปซูลขอบน้ำตาลเข้ม ตามแบบหน้า Login
-/// - ปุ่มหลัก (FilledButton) สีน้ำตาล ตัวอักษรขาว มุมโค้งเต็ม
+/// - ช่องกรอกข้อมูลเป็นทรงแคปซูลพื้นขาวขอบดำ
+/// - ปุ่มหลัก (FilledButton) สีดำ ตัวอักษรขาว มุมโค้งเต็ม
 ThemeData buildTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.honey,
+    seedColor: AppColors.yellow,
     primary: AppColors.caramel,
+    secondary: AppColors.yellow,
     surface: AppColors.surface,
-    // เส้นขอบปุ่มกรอง/เส้นคั่นรายการแชทเจ้าหน้าที่ใช้สีนี้
+    // เส้นขอบปุ่มกรอง/เส้นคั่นใช้สีนี้
     outline: AppColors.ink,
   );
   return ThemeData(
@@ -65,13 +73,22 @@ ThemeData buildTheme() {
     ),
     navigationBarTheme: const NavigationBarThemeData(
       backgroundColor: AppColors.surface,
-      indicatorColor: AppColors.honey,
+      indicatorColor: AppColors.yellow,
     ),
+    // แถบกรอง ทั้งหมด/ส่วนรวม/ส่วนตัว: พื้นเหลือง ตัวที่เลือกเหลืองเข้มขึ้น ไม่มีขอบดำ
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        selectedBackgroundColor: AppColors.honey.withValues(alpha: 0.45),
+        backgroundColor: AppColors.yellow.withValues(alpha: 0.55),
+        foregroundColor: AppColors.ink,
+        selectedBackgroundColor: AppColors.yellow,
         selectedForegroundColor: AppColors.ink,
+        side: const BorderSide(color: Color(0x33000000)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: AppColors.yellow,
+      foregroundColor: AppColors.ink,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -79,15 +96,15 @@ ThemeData buildTheme() {
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(40),
-        borderSide: const BorderSide(color: AppColors.ink, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.ink, width: 1.4),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(40),
-        borderSide: const BorderSide(color: AppColors.ink, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.ink, width: 1.4),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(40),
-        borderSide: const BorderSide(color: AppColors.honey, width: 2.4),
+        borderSide: const BorderSide(color: AppColors.ink, width: 2.4),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
