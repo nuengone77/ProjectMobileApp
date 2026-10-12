@@ -4,8 +4,10 @@
 //   กด Accept Terms ถึงจะสมัครสำเร็จ, กด Reject = ยังไม่สมัคร
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
+import '../providers/auth_provider.dart';
 import '../data/registration_rules.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -29,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error; // ข้อความ error ที่แสดงใต้ช่องกรอก (null = ไม่มี)
 
-  /// ตรวจว่ากรอกครบ แล้วส่งไปเช็กกับ store (หน่วง 0.5 วิ ให้ดูเหมือนรอ server)
+  /// ตรวจว่ากรอกครบ แล้วส่งไปเช็กกับ AuthProvider (หน่วง 0.5 วิ ให้ดูเหมือนรอ server)
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
     if (_email.text.trim().isEmpty || _password.text.isEmpty) {
@@ -40,8 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = null;
     });
+    // ดึง Provider ก่อน await (หลัง await ไม่ควรใช้ context)
+    final auth = context.read<AuthProvider>();
     await Future.delayed(const Duration(milliseconds: 500));
-    final err = store.login(_email.text, _password.text);
+    final err = auth.login(_email.text, _password.text);
     if (mounted) {
       setState(() {
         _loading = false;
@@ -204,7 +208,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _major;
   String? _error;
 
-  /// ตรวจฟอร์ม -> แสดงข้อตกลง -> ยอมรับแล้วสมัครใน store -> กลับหน้าแรก (เป็นหน้านักศึกษา)
+  /// ตรวจฟอร์ม -> แสดงข้อตกลง -> ยอมรับแล้วสมัครผ่าน AuthProvider -> กลับหน้าแรก (เป็นหน้านักศึกษา)
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_form.currentState!.validate()) return;
@@ -214,7 +218,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       builder: (_) => const LicenseAgreementDialog(),
     );
     if (accepted != true || !mounted) return;
-    final err = store.register(
+    final err = context.read<AuthProvider>().register(
       email: _email.text,
       password: _password.text,
       name: _name.text,
@@ -305,129 +309,150 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final digitsOnly = [FilteringTextInputFormatter.digitsOnly];
     // แบบเดียวกับหน้า Login: ส่วนบนขาว = โลโก้, ส่วนล่างเหลือง (ขอบบนโค้ง) = ฟอร์มสมัคร
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
+    return UnsavedChangesGuard(
+      // บทที่ 9 (PopScope): กรอกไปแล้วกดย้อนกลับ -> ถามก่อนทิ้งข้อมูล
+      isDirty: () =>
+          [
+            _email,
+            _password,
+            _studentId,
+            _name,
+            _nameEn,
+            _phone,
+          ].any((c) => c.text.isNotEmpty) ||
+          _department != null,
+      listenable: Listenable.merge([
+        _email,
+        _password,
+        _studentId,
+        _name,
+        _nameEn,
+        _phone,
+      ]),
+      child: Scaffold(
         backgroundColor: AppColors.surface,
-        title: const Text('sign in'),
-      ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(28, 4, 28, 20),
-              child: Column(
-                children: [
-                  Image.asset(_loginLogo, height: 110, fit: BoxFit.contain),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'คุยกับพี่ไข่หวานได้ทุกเรื่อง',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            YellowArcPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _field(
-                    _email,
-                    'Email',
-                    keyboard: TextInputType.emailAddress,
-                    // อีเมลมหาลัย @nu.ac.th และต้องตรงกับชื่ออังกฤษ + รหัสนิสิต (ดู registration_rules.dart)
-                    validator: (v) => RegistrationRules.emailError(
-                      v,
-                      nameEn: _nameEn.text,
-                      studentId: _studentId.text,
-                    ),
-                  ),
-                  _field(
-                    _password,
-                    'password',
-                    obscure: true,
-                    validator: (v) => (v == null || v.length < 4)
-                        ? 'รหัสผ่านอย่างน้อย 4 ตัวอักษร'
-                        : null,
-                  ),
-                  _field(
-                    _studentId,
-                    'รหัสนิสิต',
-                    keyboard: TextInputType.number,
-                    formatters: [
-                      ...digitsOnly,
-                      LengthLimitingTextInputFormatter(8),
-                    ],
-                    validator: RegistrationRules.studentIdError,
-                  ),
-                  _field(_name, 'ชื่อ-สกุล'),
-                  _field(
-                    _nameEn,
-                    'ชื่อ-สกุล (ภาษาอังกฤษ)',
-                    keyboard: TextInputType.name,
-                    validator: RegistrationRules.nameEnError,
-                  ),
-                  _field(
-                    _phone,
-                    'เบอร์โทรศัพท์',
-                    keyboard: TextInputType.phone,
-                    formatters: [
-                      ...digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    validator: (v) => (v == null || !AppStore.isValidPhone(v))
-                        ? 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'
-                        : null,
-                  ),
-                  // ภาควิชา -> สาขา (รายการสาขาเปลี่ยนตามภาควิชาที่เลือก)
-                  _choice(
-                    hint: 'ภาควิชา',
-                    value: _department,
-                    options: AppStore.departments.keys.toList(),
-                    onChanged: (v) => setState(() {
-                      _department = v;
-                      _major = null; // เปลี่ยนภาควิชาแล้วให้เลือกสาขาใหม่
-                    }),
-                    error: 'กรุณาเลือกภาควิชา',
-                  ),
-                  const SizedBox(height: 14),
-                  _choice(
-                    // key ตามภาควิชา: เปลี่ยนภาควิชาแล้วล้างสาขาที่เลือกไว้
-                    key: ValueKey(_department),
-                    hint: _department == null
-                        ? 'สาขา (เลือกภาควิชาก่อน)'
-                        : 'สาขา',
-                    value: _major,
-                    options: AppStore.departments[_department] ?? const [],
-                    onChanged: _department == null
-                        ? null
-                        : (v) => setState(() => _major = v),
-                    error: 'กรุณาเลือกสาขา',
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _error!,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          title: const Text('sign in'),
+        ),
+        body: Form(
+          key: _form,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                color: AppColors.surface,
+                padding: const EdgeInsets.fromLTRB(28, 4, 28, 20),
+                child: Column(
+                  children: [
+                    Image.asset(_loginLogo, height: 110, fit: BoxFit.contain),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'คุยกับพี่ไข่หวานได้ทุกเรื่อง',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.alert),
+                      style: TextStyle(color: AppColors.muted),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  Center(
-                    child: PillButton(
-                      onPressed: _submit,
-                      child: const Text('sign in'),
-                    ),
-                  ),
-                  SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom),
-                ],
+                ),
               ),
-            ),
-          ],
+              YellowArcPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _field(
+                      _email,
+                      'Email',
+                      keyboard: TextInputType.emailAddress,
+                      // อีเมลมหาลัย @nu.ac.th และต้องตรงกับชื่ออังกฤษ + รหัสนิสิต (ดู registration_rules.dart)
+                      validator: (v) => RegistrationRules.emailError(
+                        v,
+                        nameEn: _nameEn.text,
+                        studentId: _studentId.text,
+                      ),
+                    ),
+                    _field(
+                      _password,
+                      'password',
+                      obscure: true,
+                      validator: (v) => (v == null || v.length < 4)
+                          ? 'รหัสผ่านอย่างน้อย 4 ตัวอักษร'
+                          : null,
+                    ),
+                    _field(
+                      _studentId,
+                      'รหัสนิสิต',
+                      keyboard: TextInputType.number,
+                      formatters: [
+                        ...digitsOnly,
+                        LengthLimitingTextInputFormatter(8),
+                      ],
+                      validator: RegistrationRules.studentIdError,
+                    ),
+                    _field(_name, 'ชื่อ-สกุล'),
+                    _field(
+                      _nameEn,
+                      'ชื่อ-สกุล (ภาษาอังกฤษ)',
+                      keyboard: TextInputType.name,
+                      validator: RegistrationRules.nameEnError,
+                    ),
+                    _field(
+                      _phone,
+                      'เบอร์โทรศัพท์',
+                      keyboard: TextInputType.phone,
+                      formatters: [
+                        ...digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      validator: (v) => (v == null || !AppData.isValidPhone(v))
+                          ? 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'
+                          : null,
+                    ),
+                    // ภาควิชา -> สาขา (รายการสาขาเปลี่ยนตามภาควิชาที่เลือก)
+                    _choice(
+                      hint: 'ภาควิชา',
+                      value: _department,
+                      options: AppData.departments.keys.toList(),
+                      onChanged: (v) => setState(() {
+                        _department = v;
+                        _major = null; // เปลี่ยนภาควิชาแล้วให้เลือกสาขาใหม่
+                      }),
+                      error: 'กรุณาเลือกภาควิชา',
+                    ),
+                    const SizedBox(height: 14),
+                    _choice(
+                      // key ตามภาควิชา: เปลี่ยนภาควิชาแล้วล้างสาขาที่เลือกไว้
+                      key: ValueKey(_department),
+                      hint: _department == null
+                          ? 'สาขา (เลือกภาควิชาก่อน)'
+                          : 'สาขา',
+                      value: _major,
+                      options: AppData.departments[_department] ?? const [],
+                      onChanged: _department == null
+                          ? null
+                          : (v) => setState(() => _major = v),
+                      error: 'กรุณาเลือกสาขา',
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.alert),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Center(
+                      child: PillButton(
+                        onPressed: _submit,
+                        child: const Text('sign in'),
+                      ),
+                    ),
+                    SizedBox(height: 24 + MediaQuery.paddingOf(context).bottom),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

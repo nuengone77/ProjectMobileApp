@@ -1,9 +1,11 @@
 // หน้าโปรไฟล์ ใช้ร่วมกันทั้งนักศึกษาและเจ้าหน้าที่ (แท็บขวาสุด)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
+import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -17,10 +19,10 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('โปรไฟล์')),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          final me = store.currentUser;
+      // context.watch: ข้อมูลผู้ใช้เปลี่ยน (เช่น แก้เบอร์) หน้านี้วาดใหม่เอง (บทที่ 10)
+      body: Builder(
+        builder: (context) {
+          final me = context.watch<AuthProvider>().currentUser;
           if (me == null) return const SizedBox();
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -90,7 +92,7 @@ class ProfileScreen extends StatelessWidget {
                 _Info(
                   icon: Icons.account_balance_outlined,
                   label: 'ภาควิชา',
-                  value: AppStore.departmentOf(me.major) ?? 'ไม่ได้ระบุ',
+                  value: AppData.departmentOf(me.major) ?? 'ไม่ได้ระบุ',
                   onEdit: () => _editMajor(context, me.major),
                 ),
                 _Info(
@@ -113,7 +115,7 @@ class ProfileScreen extends StatelessWidget {
                 onPressed: () {
                   // ปิดทุกหน้าที่ซ้อนอยู่ก่อน แล้ว logout -> _RoleGate จะพากลับหน้า Login
                   Navigator.of(context).popUntil((r) => r.isFirst);
-                  store.logout();
+                  context.read<AuthProvider>().logout();
                 },
                 icon: const Icon(Icons.logout),
                 label: const Text('ออกจากระบบ'),
@@ -200,7 +202,7 @@ Future<void> showStudentProfile(BuildContext context, AppUser student) {
             _Info(
               icon: Icons.account_balance_outlined,
               label: 'ภาควิชา',
-              value: AppStore.departmentOf(student.major) ?? 'ไม่ได้ระบุ',
+              value: AppData.departmentOf(student.major) ?? 'ไม่ได้ระบุ',
             ),
             _Info(
               icon: Icons.school_outlined,
@@ -272,7 +274,7 @@ Future<void> _editPhone(BuildContext context, String current) async {
     builder: (_) => _PhoneDialog(current: current),
   );
   if (phone == null || !context.mounted) return;
-  store.updateMyProfile(phone: phone);
+  context.read<AuthProvider>().updateMyProfile(phone: phone);
   ScaffoldMessenger.of(context)
       .showSnackBar(const SnackBar(content: Text('บันทึกเบอร์โทรแล้ว')));
 }
@@ -296,7 +298,7 @@ class _PhoneDialogState extends State<_PhoneDialog> {
   }
 
   void _save() {
-    if (!AppStore.isValidPhone(_phone.text)) {
+    if (!AppData.isValidPhone(_phone.text)) {
       setState(() => _error = 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0');
       return;
     }
@@ -341,7 +343,7 @@ Future<void> _editMajor(BuildContext context, String current) async {
     builder: (_) => _MajorSheet(current: current),
   );
   if (major == null || !context.mounted) return;
-  store.updateMyProfile(major: major);
+  context.read<AuthProvider>().updateMyProfile(major: major);
   ScaffoldMessenger.of(context)
       .showSnackBar(const SnackBar(content: Text('บันทึกภาควิชา/สาขาแล้ว')));
 }
@@ -355,7 +357,7 @@ class _MajorSheet extends StatefulWidget {
 }
 
 class _MajorSheetState extends State<_MajorSheet> {
-  late String? _department = AppStore.departmentOf(widget.current);
+  late String? _department = AppData.departmentOf(widget.current);
   late String? _major = _department == null ? null : widget.current;
 
   @override
@@ -400,7 +402,7 @@ class _MajorSheetState extends State<_MajorSheet> {
             dropdown(
               label: 'ภาควิชา',
               value: _department,
-              options: AppStore.departments.keys.toList(),
+              options: AppData.departments.keys.toList(),
               // เปลี่ยนภาควิชา -> ต้องเลือกสาขาใหม่
               onChanged: (v) => setState(() {
                 _department = v;
@@ -411,7 +413,7 @@ class _MajorSheetState extends State<_MajorSheet> {
             dropdown(
               label: 'สาขา',
               value: _major,
-              options: AppStore.departments[_department] ?? const [],
+              options: AppData.departments[_department] ?? const [],
               onChanged: (v) => setState(() => _major = v),
             ),
             const SizedBox(height: 20),

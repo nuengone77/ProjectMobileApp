@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:kaiwan_chuaiduai/data/app_database.dart';
-import 'package:kaiwan_chuaiduai/data/app_store.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/report_export.dart';
 
@@ -13,13 +12,13 @@ import 'test_store.dart';
 // ทดสอบตารางสรุปเคส (case_reports): ที่มาของแถว, การแก้ไข, ตัวกรอง, การเก็บลงฐานข้อมูล, CSV
 void main() {
   /// ล็อกอินเจ้าหน้าที่คนที่ 1
-  void loginStaff1(AppStore s) {
+  void loginStaff1(TestApp s) {
     s.logout();
     s.login(staff1.email, staff1.password);
   }
 
   /// นักศึกษาทดลองเปิดแชทเจาะจงกับเจ้าหน้าที่คนที่ 1 แล้วเจ้าหน้าที่จบพร้อมสรุป
-  Conversation closedChat(AppStore s) {
+  Conversation closedChat(TestApp s) {
     s.logout();
     s.login('somjaij67@nu.ac.th', '1234');
     final c = s.openConversation(categoryId: 'urgent');
@@ -137,7 +136,10 @@ void main() {
 
   test('ตารางเก็บลงฐานข้อมูล และอัปเกรดจากฐานข้อมูลเวอร์ชันเก่าได้', () async {
     final dir = Directory.systemTemp.createTempSync('kaiwan_report_test');
-    addTearDown(() => dir.deleteSync(recursive: true));
+    addTearDown(() async {
+      await closeTestApps();
+      dir.deleteSync(recursive: true);
+    });
     final path = '${dir.path}/kaiwan.db';
 
     // จำลองเครื่องที่มีฐานข้อมูลเวอร์ชัน 1 (ยังไม่มีตาราง case_reports)

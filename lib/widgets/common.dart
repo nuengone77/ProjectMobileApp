@@ -2,7 +2,7 @@
 // หัวข้อของแต่ละขั้นตอน และฟังก์ชันแสดงเวลา
 import 'package:flutter/material.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
 import '../theme.dart';
 
@@ -206,7 +206,7 @@ class BellBadge extends StatelessWidget {
 }
 
 /// รูปโปรไฟล์วงกลม
-/// เจ้าหน้าที่ = รูปจริงจาก [AppStore.staffPhotos] (ถ้าไม่มีรูปใช้ emoji 👩🏻‍💼)
+/// เจ้าหน้าที่ = รูปจริงจาก [AppData.staffPhotos] (ถ้าไม่มีรูปใช้ emoji 👩🏻‍💼)
 /// นักศึกษา = รูปแมวโบกมือ [studentAvatarImage] บนพื้นขาว (เห็นเฉพาะฝั่งเจ้าหน้าที่:
 /// รายการแชท หัวห้องแชท บับเบิล และแผ่นโปรไฟล์นิสิต)
 class StaffAvatar extends StatelessWidget {
@@ -217,7 +217,7 @@ class StaffAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emoji = Text('👩🏻‍💼', style: TextStyle(fontSize: size * 0.55));
-    final photo = AppStore.staffPhotos[user.id];
+    final photo = AppData.staffPhotos[user.id];
     return Stack(
       children: [
         Container(
@@ -471,4 +471,62 @@ class AppBanner extends StatelessWidget {
       child: Image.asset(image, width: double.infinity, fit: BoxFit.fitWidth),
     );
   }
+}
+
+/// กันออกจากฟอร์มที่กรอกค้างไว้โดยไม่ตั้งใจ (บทที่ 9: PopScope)
+/// - [isDirty] = กรอกอะไรไปแล้วหรือยัง; ถ้ายังไม่กรอกก็ย้อนกลับได้ปกติ (ปัดขอบจอได้)
+/// - ถ้ากรอกแล้ว กดย้อนกลับจะถามก่อนว่า “ทิ้งข้อมูลที่กรอกไว้ไหม?”
+/// - [listenable] = ตัวที่เปลี่ยนเมื่อผู้ใช้พิมพ์ (เช่น TextEditingController หลายตัวรวมกัน)
+///   ใช้ให้ค่า canPop อัปเดตทันทีตอนพิมพ์
+class UnsavedChangesGuard extends StatelessWidget {
+  const UnsavedChangesGuard({
+    super.key,
+    required this.isDirty,
+    required this.child,
+    this.listenable,
+  });
+  final bool Function() isDirty;
+  final Listenable? listenable;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget guard(BuildContext context) => PopScope(
+      // canPop: false = ยังไม่ให้ออก ระบบจะเรียก onPopInvokedWithResult ให้เราตัดสินใจเอง
+      canPop: !isDirty(),
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return; // ออกไปแล้ว (ฟอร์มว่าง)
+        final leave = await confirmDiscard(context);
+        if (leave && context.mounted) Navigator.of(context).pop();
+      },
+      child: child,
+    );
+    final l = listenable;
+    return l == null
+        ? guard(context)
+        : ListenableBuilder(listenable: l, builder: (c, _) => guard(c));
+  }
+}
+
+/// หน้าต่างถาม “ทิ้งข้อมูลที่กรอกไว้ไหม?” คืน true = ทิ้งแล้วออก
+Future<bool> confirmDiscard(BuildContext context) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('ทิ้งข้อมูลที่กรอกไว้ไหม?'),
+      content: const Text('ข้อมูลที่กรอกในหน้านี้จะไม่ถูกบันทึก'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(c, false),
+          child: const Text('กรอกต่อ'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: AppColors.alert),
+          onPressed: () => Navigator.pop(c, true),
+          child: const Text('ทิ้งข้อมูล'),
+        ),
+      ],
+    ),
+  );
+  return ok ?? false;
 }
