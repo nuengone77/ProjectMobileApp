@@ -141,7 +141,7 @@ class StudentHome extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'วันนี้อยากปรึกษาพี่ไข่หวานเรื่องอะไรดี?',
+                      'วันนี้อยากคุยกับพี่ไข่หวานเรื่องอะไรดี?',
                       style: TextStyle(color: AppColors.muted),
                     ),
                   ],
@@ -167,7 +167,7 @@ class StudentHome extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'ข้อมูลการปรึกษาของคุณเป็นความลับ',
+                    'ข้อมูลการสนทนาของคุณเป็นความลับ',
                     style: const TextStyle(fontSize: 13, color: AppColors.ink),
                   ),
                 ),
@@ -176,7 +176,7 @@ class StudentHome extends StatelessWidget {
           ),
           const SizedBox(height: 22),
           const Text(
-            'เลือกหัวข้อที่ต้องการปรึกษา',
+            'เลือกหัวข้อที่ต้องการ',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -228,7 +228,7 @@ class ConsultChannelScreen extends StatelessWidget {
             caption: 'เจอพี่ตัวจริงที่ห้อง หรือคุยผ่านแอปก็ได้',
           ),
           OrangeCard(
-            title: 'ถามตอบกับพี่ไข่หวาน\nที่ห้องกิจการนิสิต',
+            title: 'ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต',
             subtitle: 'นัดวันและเวลา ครั้งละ 30 นาที',
             icon: Icons.meeting_room_rounded,
             onTap: () => Navigator.push(
@@ -240,7 +240,7 @@ class ConsultChannelScreen extends StatelessWidget {
             ),
           ),
           OrangeCard(
-            title: 'ถามตอบกับพี่ไข่หวาน\nผ่านแอป',
+            title: 'ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน',
             subtitle: 'แชทได้ทันที',
             icon: Icons.chat_rounded,
             onTap: () => Navigator.push(
@@ -284,15 +284,15 @@ class ConsultModeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         children: [
           StepHeader(
-            title: inPerson ? 'อยากนัดกับพี่คนไหน?' : 'เลือกรูปแบบการปรึกษา',
+            title: inPerson ? 'อยากนัดกับพี่คนไหน?' : 'เลือกรูปแบบการถามคอบ',
             caption: inPerson
                 ? 'ให้พี่คนไหนก็ได้ที่ว่างรับนัด หรือเลือกพี่เอง'
                 : 'อยากคุยกับพี่ไข่หวานแบบไหนดี?',
           ),
           OrangeCard(
-            title: 'ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)',
+            title: 'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)',
             subtitle: inPerson
-                ? 'แจ้งเวลานัดถึงพี่ไข่หวานทุกคน ใครว่างก็รับนัด'
+                ? 'แจ้งเวลานัดถึงพี่ไข่หวานทุกคน'
                 : 'เข้าแชทได้ทันที ตอบเร็วที่สุด',
             icon: Icons.groups_rounded,
             onTap: () => inPerson
@@ -305,7 +305,7 @@ class ConsultModeScreen extends StatelessWidget {
                 : openChat(context, category: category),
           ),
           OrangeCard(
-            title: 'ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
+            title: 'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
             subtitle: inPerson
                 ? 'แจ้งเวลานัดถึงพี่คนที่เลือกเท่านั้น'
                 : 'เลือกพี่ที่อยากคุยด้วยเอง',
@@ -348,7 +348,7 @@ class StaffPickerScreen extends StatelessWidget {
           StepHeader(
             title: inPerson ? 'อยากนัดกับพี่คนไหน?' : 'อยากคุยกับพี่คนไหน?',
             caption: inPerson
-                ? 'พี่ที่เลือกจะได้รับแจ้งเตือนเวลานัดคนเดียว'
+                ? 'เฉพาะพี่ที่เลือกเท่านั้นที่จะได้รับแจ้งเตือนเวลานัด'
                 : 'หัวข้อ: ${category.title}',
           ),
           for (final s in store.staff)
@@ -403,7 +403,7 @@ class MyChatsScreen extends StatelessWidget {
           if (list.isEmpty) {
             return const Center(
               child: Text(
-                'ยังไม่มีการปรึกษา\nเลือกหัวข้อที่หน้าแรกเพื่อเริ่มแชทได้เลย',
+                'ยังไม่มีการถามตอบ\nเลือกหัวข้อที่หน้าแรกเพื่อเริ่มแชทได้เลย',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.muted),
               ),

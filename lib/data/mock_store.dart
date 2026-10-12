@@ -111,13 +111,13 @@ class MockStore extends ChangeNotifier {
     ConsultCategory(
       id: 'general',
       title: 'ถาม/ตอบเรื่องทั่วไป',
-      subtitle: 'สอบถามได้ทุกเรื่อง เลือกคุยกับพี่คนไหนก็ได้',
+      subtitle: 'กยศ./ทุน/การเรียน/ปัญหาทั่วไป/อื่นๆ',
       icon: Icons.forum_rounded,
     ),
     ConsultCategory(
       id: 'urgent',
       title: 'ขอความช่วยเหลือแบบเร่งด่วน',
-      subtitle: 'ส่งถึงพี่ไข่หวานทุกคนทันที',
+      subtitle: 'อุบัติเหตุ/โดนทำร้ายร่างกาย/สต็อคเกอร์/เรื่องเร่งด่วนอื่นๆ',
       icon: Icons.sos_rounded,
       urgent: true,
     ),
@@ -129,7 +129,7 @@ class MockStore extends ChangeNotifier {
 
   /// ข้อมูลห้องกิจการนิสิต (ข้อมูลตัวอย่าง แก้เป็นข้อมูลจริงได้ที่นี่)
   static const officeName = 'ห้องกิจการนิสิต';
-  static const officeLocation = 'อาคารกิจการนิสิต ชั้น 1 (ข้อมูลตัวอย่าง)';
+  static const officeLocation = 'ห้องกิจการนิสิต คณะวิทยาศาสตร์';
   static const officeHoursText = 'จันทร์–ศุกร์ 08:30–16:30 น.';
 
   /// เบอร์ฉุกเฉินที่แจ้งอัตโนมัติในแชทเร่งด่วน (แก้เป็นเบอร์จริงได้ที่นี่)
@@ -318,10 +318,10 @@ class MockStore extends ChangeNotifier {
           senderId: 'system',
           isSystem: true,
           text: staffId != null
-              ? 'เริ่มการปรึกษา "$title" กับ ${user(staffId).displayName}'
+              ? 'เลือก "$title" กับ ${user(staffId).displayName}'
               : category(categoryId).urgent
               ? 'ส่งคำขอความช่วยเหลือเร่งด่วนถึงพี่ไข่หวานทุกคนแล้ว พี่จะรีบตอบนะ'
-              : 'เริ่มการปรึกษา "$title" ระบบกำลังหาพี่ไข่หวานที่ว่างให้นะ',
+              : 'เลือก "$title" ระบบกำลังหาพี่ไข่หวานที่ว่างให้นะ',
         ),
         // แชทเร่งด่วน: แจ้งเบอร์ฉุกเฉินอัตโนมัติทันทีที่เปิดห้อง
         if (category(categoryId).urgent)
@@ -420,7 +420,7 @@ class MockStore extends ChangeNotifier {
       Message(
         senderId: 'system',
         isSystem: true,
-        text: 'การปรึกษานี้สิ้นสุดแล้ว ขอบคุณที่ใช้บริการ',
+        text: 'การถามตอบสิ้นสุดแล้ว ขอบคุณที่ใช้บริการ',
       ),
     );
     _db.saveConversation(conv);
@@ -795,8 +795,8 @@ class MockStore extends ChangeNotifier {
         id: 'st1',
         email: 'piyaromk@nu.ac.th',
         passwordHash: hashPassword('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
-        name: 'เจ้าหน้าที่คนที่ 1',
-        nickname: '1',
+        name: 'เจ้าหน้าที่',
+        nickname: 'มะนาว',
         avatarColor: const Color(0xFFB9D7E8),
         role: Role.staff,
       ),
@@ -804,8 +804,8 @@ class MockStore extends ChangeNotifier {
         id: 'st2',
         email: 'khuwnruanep@nu.ac.th',
         passwordHash: hashPassword('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep'),
-        name: 'เจ้าหน้าที่คนที่ 2',
-        nickname: '2',
+        name: 'เจ้าหน้าที่',
+        nickname: 'เเนน',
         avatarColor: const Color(0xFFF6C9D0),
         role: Role.staff,
       ),
@@ -813,8 +813,8 @@ class MockStore extends ChangeNotifier {
         id: 'st3',
         email: 'chonnikank@nu.ac.th',
         passwordHash: hashPassword('chonnikank@nu.ac.th', 'kaiwanchonnikank'),
-        name: 'เจ้าหน้าที่คนที่ 3',
-        nickname: '3',
+        name: 'เจ้าหน้าที่',
+        nickname: 'ขวัญ',
         avatarColor: const Color(0xFFCDE8C5),
         role: Role.staff,
       ),

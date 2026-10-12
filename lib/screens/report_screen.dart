@@ -514,7 +514,7 @@ class _ReportEditorState extends State<_ReportEditor> {
                     onPressed: _pickDateTime,
                     icon: const Icon(Icons.event),
                     label: Text(
-                      'วันที่มาขอรับคำปรึกษา: ${ReportExport.dateText(_date)}',
+                      'วันที่: ${ReportExport.dateText(_date)}',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -542,7 +542,7 @@ class _ReportEditorState extends State<_ReportEditor> {
                 // ---- คอลัมน์ที่แก้ได้
                 DropdownButtonFormField<String>(
                   initialValue: _category,
-                  decoration: _box('ประเภทปรึกษา'),
+                  decoration: _box('ประเภทการถาม/ตอบ'),
                   borderRadius: BorderRadius.circular(14),
                   items: [
                     for (final c in MockStore.categories)
@@ -557,13 +557,13 @@ class _ReportEditorState extends State<_ReportEditor> {
                 TextFormField(
                   controller: _topic,
                   maxLines: 3,
-                  decoration: _box('เรื่องที่ปรึกษา'),
+                  decoration: _box('เรื่องที่ถาม/ตอบ'),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _advice,
                   maxLines: 3,
-                  decoration: _box('คำปรึกษาที่เจ้าหน้าที่ให้'),
+                  decoration: _box('คำตอบที่เจ้าหน้าที่ให้'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<CaseLevel>(

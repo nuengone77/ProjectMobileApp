@@ -199,8 +199,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('จบการปรึกษา?'),
-        content: const Text('สามารถเริ่มปรึกษาใหม่ได้ทุกเมื่อจากหน้าแรก'),
+        title: const Text('จบการสนทนา?'),
+        content: const Text('สามารถเริ่มการถาม/ตอบใหม่ได้ทุกเมื่อจากหน้าแรก'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -208,7 +208,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('จบการปรึกษา'),
+            child: const Text('จบการสนทนา'),
           ),
         ],
       ),
@@ -290,7 +290,7 @@ class _ChatScreenState extends State<ChatScreen> {
               // ปุ่มดูโปรไฟล์นักศึกษา (เฉพาะเจ้าหน้าที่)
               if (me.isStaff && other != null)
                 IconButton(
-                  tooltip: 'ดูโปรไฟล์ผู้มาปรึกษา',
+                  tooltip: 'ดูโปรไฟล์นิสิต',
                   icon: const Icon(Icons.badge_outlined),
                   onPressed: () => showStudentProfile(context, other),
                 ),
@@ -300,7 +300,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 PopupMenuButton<String>(
                   onSelected: (v) => v == 'close' ? _close() : null,
                   itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'close', child: Text('จบการปรึกษา')),
+                    PopupMenuItem(value: 'close', child: Text('จบการสนทนา')),
                   ],
                 ),
             ],
@@ -375,8 +375,8 @@ class _TopicBanner extends StatelessWidget {
     final scope = urgent
         ? 'ขอความช่วยเหลือแบบเร่งด่วน'
         : conv.isSpecific
-        ? 'ปรึกษาแบบเจาะจง (ส่วนตัว)'
-        : 'ปรึกษาเจ้าหน้าที่คนไหนก็ได้ (ส่วนรวม)';
+        ? 'ถาม/ตอบแบบเจาะจง (ส่วนตัว)'
+        : 'ถาม/ตอบกับเจ้าหน้าที่คนไหนก็ได้ (ส่วนรวม)';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -864,7 +864,7 @@ class _SummarySheetState extends State<_SummarySheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  widget.closing ? 'จบการปรึกษา' : 'สรุปการปรึกษา',
+                  widget.closing ? 'จบการสนทนา' : 'สรุปการสนทนา',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -881,7 +881,7 @@ class _SummarySheetState extends State<_SummarySheet> {
                   maxLines: 3,
                   validator: _required,
                   decoration: _box(
-                    'เรื่องที่ปรึกษา',
+                    'เรื่องที่ถาม/ตอบ',
                     'เช่น สอบถามเอกสาร กยศ. ที่ต้องใช้',
                   ),
                 ),
@@ -891,7 +891,7 @@ class _SummarySheetState extends State<_SummarySheet> {
                   maxLines: 3,
                   validator: _required,
                   decoration: _box(
-                    'คำปรึกษาที่เจ้าหน้าที่ให้',
+                    'คำตอบที่เจ้าหน้าที่ให้',
                     'เช่น แจ้งรายการเอกสารและกำหนดส่ง',
                   ),
                 ),
@@ -916,7 +916,7 @@ class _SummarySheetState extends State<_SummarySheet> {
                     Navigator.pop(context, (_topic.text, _help.text, _level!));
                   },
                   child: Text(
-                    widget.closing ? 'บันทึกและจบการปรึกษา' : 'บันทึกสรุป',
+                    widget.closing ? 'บันทึกและจบการสนทนา' : 'บันทึกสรุป',
                   ),
                 ),
               ],
@@ -975,7 +975,7 @@ class _SummaryPanel extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'จบการปรึกษาแล้ว'
+                    'จบการสนทนาแล้ว'
                     '${conv.closedAt != null ? ' · ${timeLabel(conv.closedAt!)}' : ''}'
                     '${closer != null ? ' · โดย ${closer.isStaff ? closer.displayName : 'นักศึกษา'}' : ''}',
                     style: const TextStyle(
@@ -993,11 +993,11 @@ class _SummaryPanel extends StatelessWidget {
             if (conv.hasSummary) ...[
               if (conv.caseLevel != null)
                 field('ระดับเคส', conv.caseLevel!.display),
-              field('เรื่องที่ปรึกษา', conv.summaryTopic),
-              field('คำปรึกษาที่เจ้าหน้าที่ให้', conv.summaryHelp),
+              field('เรื่องที่ถามตอบ', conv.summaryTopic),
+              field('คำตอบที่เจ้าหน้าที่ให้', conv.summaryHelp),
             ] else
               const Text(
-                'ยังไม่ได้บันทึกสรุป (นักศึกษากดจบการปรึกษาเอง)',
+                'ยังไม่ได้บันทึกสรุป (นักศึกษากดจบการสนทนาเอง)',
                 style: TextStyle(color: AppColors.alert),
               ),
           ],

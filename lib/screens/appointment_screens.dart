@@ -153,7 +153,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             onChanged: (s) => setState(() => _slot = s),
           ),
           const SizedBox(height: 16),
-          const _SectionTitle('อยากปรึกษาเรื่องอะไร (ไม่บังคับ)'),
+          const _SectionTitle('อยากถาม/ตอบเรื่องอะไร (ไม่บังคับ)'),
           TextField(
             controller: _note,
             maxLines: 3,

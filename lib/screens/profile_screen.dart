@@ -158,7 +158,7 @@ Future<void> showStudentProfile(BuildContext context, AppUser student) {
                         ),
                       ),
                       const Text(
-                        'โปรไฟล์ผู้มาปรึกษา',
+                        'โปรไฟล์ผู้มาถาม/ตอบ',
                         style: TextStyle(color: AppColors.muted),
                       ),
                     ],

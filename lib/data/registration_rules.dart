@@ -35,7 +35,7 @@ class RegistrationRules {
       return 'รหัสนิสิตไม่ถูกต้อง';
     }
     if (id.substring(2, 4) != scienceFacultyCode) {
-      return 'แอปนี้ใช้ได้เฉพาะนิสิตคณะวิทยาศาสตร์';
+      return 'แอปพลิเคชันนี้ใช้ได้เฉพาะนิสิตคณะวิทยาศาสตร์เท่านั้น';
     }
     return null;
   }

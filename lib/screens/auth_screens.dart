@@ -290,7 +290,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               const Text(
-                'ปรึกษาพี่ไข่หวานได้ทุกเรื่อง',
+                'คุยกับพี่ไข่หวานได้ทุกเรื่อง',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.muted),
               ),

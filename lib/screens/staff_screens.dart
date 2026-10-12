@@ -138,20 +138,20 @@ class StaffHome extends StatelessWidget {
           Row(
             children: [
               _Stat(
-                label: 'ให้คำปรึกษาเร่งด่วนแล้ว',
+                label: 'ให้การช่วยเหลือเร่งด่วนแล้ว',
                 value: urgentDone,
                 color: AppColors.alert,
               ),
               const SizedBox(width: 12),
               _Stat(
-                label: 'ให้คำปรึกษาทั่วไปแล้ว',
+                label: 'ให้คำตอบเรื่องทั่วไปแล้ว',
                 value: generalDone,
                 color: AppColors.info,
               ),
             ],
           ),
           const SizedBox(height: 24),
-          const _Heading('ประวัติการปรึกษา (จบแล้ว)'),
+          const _Heading('ประวัติการถาม/ตอบ (จบแล้ว)'),
           // แต่ละหัวข้อ = ประวัติแชทที่จบการปรึกษาแล้ว (แชทที่ยังคุยอยู่ดูที่แท็บ “ข้อความ”)
           for (final c in MockStore.categories)
             Builder(
@@ -344,7 +344,7 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
                   return Center(
                     child: Text(
                       widget.closed
-                          ? 'ยังไม่มีประวัติการปรึกษา'
+                          ? 'ยังไม่มีประวัติการถาม/ตอบ'
                           : 'ยังไม่มีแชทที่รอคุย',
                       style: const TextStyle(color: AppColors.muted),
                     ),
