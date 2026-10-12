@@ -179,7 +179,7 @@ class _StaffReportScreenState extends State<StaffReportScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.caramel,
+        backgroundColor: AppColors.black,
         foregroundColor: Colors.white,
         onPressed: () => _openEditor(),
         icon: const Icon(Icons.add),
@@ -301,7 +301,7 @@ class _ReportTable extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: DataTable(
           showCheckboxColumn: false,
-          headingRowColor: const WidgetStatePropertyAll(AppColors.peach),
+          headingRowColor: const WidgetStatePropertyAll(AppColors.yellowDeep),
           dataRowMinHeight: 52,
           dataRowMaxHeight: 68,
           border: TableBorder.symmetric(

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kaiwan_chuaiduai/data/app_data.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
-import 'package:kaiwan_chuaiduai/screens/appointment_screens.dart';
+import 'package:kaiwan_chuaiduai/screens/appointment/appointment_card.dart';
 import 'package:kaiwan_chuaiduai/screens/auth_screens.dart';
 import 'package:kaiwan_chuaiduai/widgets/common.dart';
 

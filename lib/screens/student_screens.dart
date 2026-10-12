@@ -1,6 +1,6 @@
 // หน้าจอฝั่งนักศึกษา
 //
-// ลำดับการใช้งาน (ตามไฟล์ UX/UI):
+// ลำดับการใช้งาน (แท็บล่าง: หน้าแรก / แชทของฉัน / นัดหมาย / โปรไฟล์):
 //   StudentHome (เลือกหัวข้อ 2 แบบ)
 //     - ขอความช่วยเหลือแบบเร่งด่วน -> เข้าแชททันที (ส่งถึงเจ้าหน้าที่ทุกคน)
 //     - ถาม/ตอบเรื่องทั่วไป -> ConsultChannelScreen (เลือกช่องทาง)
@@ -19,8 +19,9 @@ import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import 'appointment_screens.dart';
-import 'chat_screen.dart';
+import 'appointment/booking_screen.dart';
+import 'appointment/my_appointments.dart';
+import 'chat/chat_screen.dart';
 import 'profile_screen.dart';
 
 /// โครงหลักฝั่งนักศึกษา: แถบเมนูล่าง 4 แท็บ (หน้าแรก / แชทของฉัน / นัดหมาย / โปรไฟล์)
@@ -76,7 +77,7 @@ class _StudentShellState extends State<StudentShell> {
           bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
             backgroundColor: AppColors.surface,
-            indicatorColor: AppColors.honey,
+            indicatorColor: AppColors.yellow,
             onDestinationSelected: (i) => setState(() => _tab = i),
             destinations: [
               const NavigationDestination(
@@ -177,10 +178,7 @@ class StudentHome extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.shield_moon_outlined,
-                  color: AppColors.caramel,
-                ),
+                const Icon(Icons.shield_moon_outlined, color: AppColors.black),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -205,7 +203,7 @@ class StudentHome extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           for (final c in AppData.categories)
-            OrangeCard(
+            MenuCard(
               title: c.title,
               subtitle: c.subtitle,
               icon: c.icon,
@@ -254,7 +252,7 @@ class ConsultChannelScreen extends StatelessWidget {
             title: 'อยากถามตอบแบบไหน?',
             caption: 'เจอพี่ตัวจริงที่ห้อง หรือคุยผ่านแอปก็ได้',
           ),
-          OrangeCard(
+          MenuCard(
             title: 'ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต',
             subtitle: 'นัดวันและเวลา ครั้งละ 30 นาที',
             icon: Icons.meeting_room_rounded,
@@ -266,7 +264,7 @@ class ConsultChannelScreen extends StatelessWidget {
               ),
             ),
           ),
-          OrangeCard(
+          MenuCard(
             title: 'ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน',
             subtitle: 'แชทได้ทันที',
             icon: Icons.chat_rounded,
@@ -318,7 +316,7 @@ class ConsultModeScreen extends StatelessWidget {
                 ? 'ให้พี่คนไหนก็ได้ที่ว่างรับนัด หรือเลือกพี่เอง'
                 : 'อยากคุยกับพี่ไข่หวานแบบไหนดี?',
           ),
-          OrangeCard(
+          MenuCard(
             title: 'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)',
             subtitle: inPerson
                 ? 'แจ้งเวลานัดถึงพี่ไข่หวานทุกคน'
@@ -333,7 +331,7 @@ class ConsultModeScreen extends StatelessWidget {
                   )
                 : openChat(context, category: category),
           ),
-          OrangeCard(
+          MenuCard(
             title: 'ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)',
             subtitle: inPerson
                 ? 'แจ้งเวลานัดถึงพี่คนที่เลือกเท่านั้น'
@@ -381,7 +379,7 @@ class StaffPickerScreen extends StatelessWidget {
                 : 'หัวข้อ: ${category.title}',
           ),
           for (final s in context.watch<AuthProvider>().staff)
-            OrangeCard(
+            MenuCard(
               leading: StaffAvatar(user: s, size: 72),
               title: s.displayName,
               // แสดงแค่รูป + ชื่อ (ไม่แสดงความเชี่ยวชาญ/สถานะออนไลน์)
@@ -450,7 +448,7 @@ class MyChatsScreen extends StatelessWidget {
 }
 
 /// แถวรายการแชท 1 ห้อง ใช้ทั้งสองฝั่ง ([forStaff] = มุมมองเจ้าหน้าที่)
-/// แสดงชื่ออีกฝ่าย, หัวข้อ (เร่งด่วนเป็นสีแดง), ข้อความล่าสุด, เวลา และเลขที่ยังไม่อ่าน
+/// แสดงชื่ออีกฝ่าย, หัวข้อ, ข้อความล่าสุด, เวลา และเลขที่ยังไม่อ่าน
 /// แสดงเป็นการ์ดมุมโค้ง สีตามหัวข้อ: เร่งด่วน = ส้ม, ทั่วไป = เหลืองอ่อน
 /// ฝั่งนักศึกษา: ห้องทั่วไปที่มีข้อความใหม่ใช้เหลืองเข้มขึ้น
 /// ห้องที่จบแล้ว (ฝั่งเจ้าหน้าที่) แสดงสรุปการปรึกษาแทนข้อความล่าสุด
@@ -504,7 +502,7 @@ class ConversationTile extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ป้ายหัวข้อ: ฝั่งเจ้าหน้าที่ไม่แสดงป้าย “เร่งด่วน” (ใช้พื้นหลังแดงอ่อนแทน)
+          // ป้ายหัวข้อ: ฝั่งเจ้าหน้าที่ไม่แสดงป้าย “เร่งด่วน” (ใช้การ์ดสีส้มแทน)
           if (!(forStaff && cat.urgent))
             Text(
               cat.urgent

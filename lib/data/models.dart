@@ -18,7 +18,6 @@ class AppUser {
     this.nameEn = '',
     this.phone = '',
     this.nickname = '',
-    this.specialty = '',
     this.avatarColor = const Color(0xFFB9D7E8),
   });
 
@@ -33,7 +32,6 @@ class AppUser {
   final String nameEn; // ชื่อ-สกุลภาษาอังกฤษ (เฉพาะนักศึกษา)
   String phone; // เบอร์โทรศัพท์ (เฉพาะนักศึกษา แก้ได้ในหน้าโปรไฟล์)
   final String nickname; // ชื่อเล่น เช่น แอน (เฉพาะเจ้าหน้าที่)
-  final String specialty; // ความเชี่ยวชาญ แสดงในหน้าเลือกพี่ไข่หวาน
   final Color avatarColor; // สีพื้นหลังรูปโปรไฟล์
 
   bool get isStaff => role == Role.staff;
@@ -57,7 +55,7 @@ class ConsultCategory {
   final String subtitle;
   final IconData icon;
 
-  /// true = เร่งด่วน: ไม่ให้เลือกเจ้าหน้าที่ ส่งถึงทุกคน และแสดงเป็นสีแดงให้เห็นชัด
+  /// true = เร่งด่วน: ไม่ให้เลือกเจ้าหน้าที่ ส่งถึงทุกคน และแสดงเป็นสีส้มให้เห็นชัด
   final bool urgent;
 }
 

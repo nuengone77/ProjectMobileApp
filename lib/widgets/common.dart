@@ -1,4 +1,4 @@
-// Widget ที่ใช้ซ้ำหลายหน้า: การ์ดเมนูสีพีช, กระดิ่งแจ้งเตือน, รูปโปรไฟล์,
+// Widget ที่ใช้ซ้ำหลายหน้า: การ์ดเมนู, รูปโปรไฟล์, ป้ายกราฟิก, แผงเหลือง, กันออกจากฟอร์ม,
 // หัวข้อของแต่ละขั้นตอน และฟังก์ชันแสดงเวลา
 import 'package:flutter/material.dart';
 
@@ -9,17 +9,15 @@ import '../theme.dart';
 /// การ์ดเมนูสีเหลืองเข้มที่ใช้ในทุกหน้าเลือก (หมวด / เรื่อง / รูปแบบการปรึกษา / เลือกพี่)
 /// - ใส่ [icon], [iconAsset] (รูปไอคอน) หรือ [leading] (เช่นรูปเจ้าหน้าที่) ได้ทางซ้าย
 /// - [label] = หัวข้อเล็กเหนือการ์ด (ตามแบบ)
-///   ถ้าไม่ใส่ทั้งคู่ ข้อความจะจัดกึ่งกลางเหมือนในไฟล์ UX/UI
-/// - [badge] > 0 จะแสดงกระดิ่ง + ตัวเลขสีแดงที่มุมขวาบน (แจ้งเตือนฝั่งเจ้าหน้าที่)
+///   ถ้าไม่ใส่เลย ข้อความจะจัดกึ่งกลาง
 /// - ไม่ใส่ [onTap] = กดไม่ได้ และจะไม่มีลูกศร >
-class OrangeCard extends StatelessWidget {
-  const OrangeCard({
+class MenuCard extends StatelessWidget {
+  const MenuCard({
     super.key,
     required this.title,
     this.subtitle,
     this.icon,
     this.leading,
-    this.badge = 0,
     this.onTap,
     this.color,
     this.iconAsset,
@@ -36,7 +34,6 @@ class OrangeCard extends StatelessWidget {
   final String? subtitle;
   final IconData? icon;
   final Widget? leading;
-  final int badge;
   final VoidCallback? onTap;
 
   /// สีพื้นการ์ด (ไม่ใส่ = เหลืองเข้มปกติ) เช่น หัวข้อเร่งด่วนใช้สีส้ม
@@ -49,7 +46,7 @@ class OrangeCard extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: color ?? AppColors.peach,
+          color: color ?? AppColors.yellowDeep,
           borderRadius: BorderRadius.circular(24),
           elevation: 0,
           child: InkWell(
@@ -120,8 +117,6 @@ class OrangeCard extends StatelessWidget {
             ),
           ),
         ),
-        if (badge > 0)
-          Positioned(right: -8, top: -12, child: BellBadge(count: badge)),
       ],
     );
     return Padding(
@@ -145,62 +140,6 @@ class OrangeCard extends StatelessWidget {
                 card,
               ],
             ),
-    );
-  }
-}
-
-/// กระดิ่งแจ้งเตือน + วงกลมแดงแสดงจำนวนข้อความที่ยังไม่อ่าน
-/// มีแอนิเมชันเด้งตอนปรากฏ
-class BellBadge extends StatelessWidget {
-  const BellBadge({super.key, required this.count});
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.6, end: 1),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.elasticOut,
-      builder: (context, s, child) => Transform.scale(scale: s, child: child),
-      child: SizedBox(
-        width: 42,
-        height: 42,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Transform.rotate(
-              angle: -0.35,
-              child: const Icon(
-                Icons.notifications_rounded,
-                size: 38,
-                color: Color(0xFFF2A93B),
-              ),
-            ),
-            Positioned(
-              left: -2,
-              top: -2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.alert,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  count > 99 ? '99+' : '$count',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -436,7 +375,7 @@ class PillButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     required this.child,
-    this.color = AppColors.caramel,
+    this.color = AppColors.black,
     this.foreground = Colors.white,
   });
   final VoidCallback? onPressed;

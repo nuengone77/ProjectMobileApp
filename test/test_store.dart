@@ -11,11 +11,13 @@ import 'package:kaiwan_chuaiduai/providers/auth_provider.dart';
 import 'package:kaiwan_chuaiduai/providers/chat_provider.dart';
 import 'package:kaiwan_chuaiduai/providers/report_provider.dart';
 
+import 'demo_data.dart';
+
 /// แอปสำหรับทดสอบ: ข้อมูล (SQLite ผ่าน FFI) + Provider จริงทั้ง 4 ตัว ต่อกันแบบเดียวกับ AppProviders
 /// เทสต์เรียกเมธอดผ่านตัวนี้ได้เลย (เช่น app.login(...)) ตัวนี้ส่งต่อไปยัง Provider ที่ดูแลเรื่องนั้น
 /// และ [widget] ให้หน้าจอใช้ Provider ชุดเดียวกัน ข้อมูลที่เทสต์เปลี่ยนจึงเห็นบนจอทันที
 class TestApp {
-  TestApp(this.data) {
+  TestApp(this.data, {this.demo = false}) {
     auth = AuthProvider(data);
     reportsP = ReportProvider(data, auth);
     appts = AppointmentProvider(data, auth);
@@ -29,6 +31,9 @@ class TestApp {
   }
 
   final AppData data;
+
+  /// ใช้ข้อมูลทดลอง (test/demo_data.dart) หรือไม่ — รีเซ็ตแล้วจะใส่กลับให้ด้วย
+  final bool demo;
   late final AuthProvider auth;
   late final ReportProvider reportsP;
   late final AppointmentProvider appts;
@@ -59,7 +64,11 @@ class TestApp {
   AppUser user(String id) => auth.user(id);
   String? login(String email, String password) => auth.login(email, password);
   void logout() => auth.logout();
-  void resetData() => auth.resetData();
+  void resetData() {
+    auth.resetData();
+    if (demo) seedDemoData(data);
+  }
+
   String? register({
     required String email,
     required String password,
@@ -180,10 +189,13 @@ Future<TestApp> openTestStore({
   final data = await AppData.open(
     factory: databaseFactoryFfi,
     path: path ?? inMemoryDatabasePath,
-    demoData: demoData,
     staffAccounts: staff,
   );
-  final app = TestApp(data);
+  // ฐานข้อมูลใหม่ (ยังไม่มีนักศึกษาทดลอง) -> ใส่ข้อมูลทดลอง; เปิดไฟล์เดิมซ้ำจะไม่ใส่ซ้ำ
+  if (demoData && !data.users.any((u) => u.id == 'stu1')) {
+    seedDemoData(data);
+  }
+  final app = TestApp(data, demo: demoData);
   _opened.add(app);
   return app;
 }

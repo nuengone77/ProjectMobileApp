@@ -1,7 +1,7 @@
-// หน้าเข้าสู่ระบบ (Login) และหน้าสมัครสมาชิก (sign in) ตามแบบ “Login and Sign in”
-// - Login: โลโก้ “ไข่หวานช่วยด้วย” + Email + password + ปุ่ม login + ลิงก์สมัครสมาชิก
-// - Sign in: รูปแมวไข่หวาน + ฟอร์มสมัคร -> กด sign in แล้วเด้งหน้า License Agreement
-//   กด Accept Terms ถึงจะสมัครสำเร็จ, กด Reject = ยังไม่สมัคร
+// หน้าเข้าสู่ระบบ (Login) และหน้าสมัครสมาชิก (sign in)
+// - Login: ด้านบนโลโก้ “ไข่หวานช่วยด้วย”, ด้านล่างแผงเหลือง Email + password + ปุ่ม login + ลิงก์สมัคร
+// - Sign in: โลโก้ + ฟอร์มสมัคร -> กด sign in แล้วเด้งหน้าขอความยินยอม
+//   กด “ยอมรับและดำเนินการต่อ” ถึงจะสมัครสำเร็จ, กด “ปฏิเสธ” = ยังไม่สมัคร
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -188,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
 /// หน้าสมัครสมาชิก (sign in):
 /// Email, password, รหัสนิสิต, ชื่อ-สกุล, ชื่อ-สกุลภาษาอังกฤษ, เบอร์โทร, ภาควิชา -> สาขา (dropdown)
-/// กด sign in -> ตรวจฟอร์ม -> เด้ง License Agreement -> Accept Terms แล้วถึงสมัครและล็อกอินให้
+/// กด sign in -> ตรวจฟอร์ม -> เด้งหน้าขอความยินยอม -> ยอมรับแล้วถึงสมัครและล็อกอินให้
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -459,9 +459,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
-/// หน้าต่างข้อตกลงการใช้งาน (License Agreement) ที่เด้งขึ้นตอนกด sign in
-/// ซ้าย/บน = โลโก้ ไข่หวานช่วยด้วย, ขวา/ล่าง = Terms and Conditions (เลื่อนอ่านได้)
-/// Reject = ปิด (คืน false), Accept Terms = ยอมรับ (คืน true)
+/// หน้าต่างขอความยินยอม (ข้อตกลงการใช้งาน) ที่เด้งขึ้นตอนกด sign in
+/// รูปทรงเหลืองด้านบน + แมวถือโทรโข่ง + กล่องข้อตกลง (เลื่อนอ่านได้)
+/// “ปฏิเสธ” = ปิด (คืน false), “ยอมรับและดำเนินการต่อ” = ยอมรับ (คืน true)
 class LicenseAgreementDialog extends StatelessWidget {
   const LicenseAgreementDialog({super.key});
 
@@ -684,7 +684,7 @@ class _TermsBox extends StatelessWidget {
                             text: '${item.label}: ',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.caramel,
+                              color: AppColors.black,
                             ),
                           ),
                         TextSpan(text: item.text),

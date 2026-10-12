@@ -1,11 +1,11 @@
 // หน้าจอฝั่งเจ้าหน้าที่
 //
-// ลำดับการใช้งาน (ตามไฟล์ UX/UI):
-//   StaffHome: ตัวเลขสรุป + การ์ดประวัติการปรึกษาแยกหัวข้อ (ทั่วไป / เร่งด่วน)
-//     - การ์ดหัวข้อ -> StaffConversationsScreen(closed: true) ประวัติแชทที่จบแล้วพร้อมสรุป
-//   แท็บ “ข้อความ” (StaffInboxScreen) = แชทที่ยังคุยอยู่ เรียงลงมา
-//   จบการปรึกษา: เจ้าหน้าที่กรอกสรุป (เรื่องที่ปรึกษา / ช่วยอะไรได้บ้าง) ใน chat_screen.dart
-// แท็บอื่น: นัดหมาย (StaffAppointmentsScreen), โปรไฟล์
+// แท็บล่าง (เรียงตามนี้): ข้อความ / นัดหมาย / ภาพรวม / โปรไฟล์ — ล็อกอินแล้วเห็นแท็บข้อความก่อน
+//   ข้อความ (StaffInboxScreen) = แชทที่ยังคุยอยู่ (เร่งด่วน/ยังไม่อ่านขึ้นก่อน) กรองส่วนรวม/ส่วนตัวได้
+//   นัดหมาย (StaffAppointmentsScreen) อยู่ใน appointment/staff_appointments.dart
+//   ภาพรวม (StaffHome) = ตัวเลขสรุป + ประวัติแชทที่จบแล้วแยกหัวข้อ + ตารางสรุปเคส
+//     - การ์ดหัวข้อ -> StaffConversationsScreen(closed: true) ประวัติพร้อมสรุป
+//   จบการสนทนา: เจ้าหน้าที่กรอกสรุป (เรื่อง / คำตอบ / ระดับเคส) ใน chat/summary_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,7 +16,7 @@ import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import 'appointment_screens.dart';
+import 'appointment/staff_appointments.dart';
 import 'profile_screen.dart';
 import 'report_screen.dart';
 import 'student_screens.dart' show ConversationTile;
@@ -69,7 +69,7 @@ class _StaffShellState extends State<StaffShell> {
           bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
             backgroundColor: AppColors.surface,
-            indicatorColor: AppColors.honey,
+            indicatorColor: AppColors.yellow,
             onDestinationSelected: (i) => setState(() => _tab = i),
             destinations: [
               NavigationDestination(
@@ -171,7 +171,7 @@ class StaffHome extends StatelessWidget {
                   closed: true,
                 );
                 final noSummary = done.where((x) => !x.hasSummary).length;
-                return OrangeCard(
+                return MenuCard(
                   title: c.title,
                   subtitle:
                       '${done.length} การสนทนาที่จบแล้ว'
@@ -199,7 +199,7 @@ class StaffHome extends StatelessWidget {
           const SizedBox(height: 10),
           const _Heading('รายงาน'),
           // ตารางสรุปเคสของฉัน (online + onsite) export ส่งส่วนกลางได้
-          OrangeCard(
+          MenuCard(
             title: 'ตารางสรุปเคส',
             subtitle: 'เคสของฉัน · export CSV / PDF',
             icon: Icons.table_chart_rounded,

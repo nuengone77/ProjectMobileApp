@@ -191,7 +191,7 @@ class ChatProvider extends ChangeNotifier {
       .where((m) => m.senderId != c.studentId && !m.isSystem)
       .length;
 
-  /// จำนวนข้อความจากนักศึกษาที่เจ้าหน้าที่ยังไม่อ่าน (ตัวเลขบนกระดิ่ง)
+  /// จำนวนข้อความจากนักศึกษาที่เจ้าหน้าที่ยังไม่อ่าน (ตัวเลขแจ้งเตือนบนแท็บ/การ์ด)
   int unreadForStaff(Conversation c) => c.messages
       .skip(c.staffReadCount)
       .where((m) => m.senderId == c.studentId)

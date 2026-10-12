@@ -4,7 +4,7 @@
 //   lib/data/      ข้อมูลกลาง (AppData), models, ฐานข้อมูล SQLite, กติกาการสมัคร
 //   lib/providers/ Provider แยกตามฟีเจอร์ (Auth / Chat / Appointment / Report) บทที่ 10–11
 //   lib/screens/  หน้าจอแต่ละส่วน (login, นักศึกษา, เจ้าหน้าที่, แชท, โปรไฟล์)
-//   lib/widgets/  widget ที่ใช้ซ้ำหลายหน้า (การ์ดเมนูสีพีช, กระดิ่งแจ้งเตือน, avatar)
+//   lib/widgets/  widget ที่ใช้ซ้ำหลายหน้า (การ์ดเมนู, รูปโปรไฟล์, ป้ายกราฟิก, กันออกจากฟอร์ม)
 //   lib/theme.dart สี ฟอนต์ และสไตล์กลางของทั้งแอป
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -33,7 +33,7 @@ Future<AppData> loadAppData() async {
   // บัญชีเจ้าหน้าที่จริงจาก assets (ไม่มีไฟล์ = ใช้บัญชีตัวอย่าง แอปยังรันได้)
   final staff = await StaffAccount.load();
   final data = await AppData.open(staffAccounts: staff);
-  // รีเซ็ตข้อมูลทดลอง: รันด้วย flutter run --dart-define=RESET_DB=true
+  // รีเซ็ตข้อมูล: รันด้วย flutter run --dart-define=RESET_DB=true
   // ไม่มีปุ่มในแอปให้ผู้ใช้กด
   if (const bool.fromEnvironment('RESET_DB')) {
     data.resetData();
@@ -116,7 +116,7 @@ class _AppStartupState extends State<AppStartup> {
                         child: const Text('ลองใหม่'),
                       ),
                     ] else ...[
-                      const CircularProgressIndicator(color: AppColors.caramel),
+                      const CircularProgressIndicator(color: AppColors.black),
                       const SizedBox(height: 14),
                       const Text('กำลังโหลด...'),
                     ],

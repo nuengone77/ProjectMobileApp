@@ -38,7 +38,7 @@ class Attachments {
     return name;
   }
 
-  /// ลบไฟล์แนบทั้งหมด (ใช้ตอนรีเซ็ตข้อมูลทดลอง)
+  /// ลบไฟล์แนบทั้งหมด (ใช้ตอนรีเซ็ตข้อมูล)
   static void clear() {
     final d = Directory(dir);
     if (!d.existsSync()) return;

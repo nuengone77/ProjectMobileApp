@@ -241,7 +241,7 @@ class _Info extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         child: ListTile(
-          leading: Icon(icon, color: AppColors.caramel),
+          leading: Icon(icon, color: AppColors.black),
           title: Text(
             label,
             style: const TextStyle(fontSize: 12, color: AppColors.muted),
@@ -256,7 +256,7 @@ class _Info extends StatelessWidget {
                   tooltip: 'แก้ไข$label',
                   icon: const Icon(
                     Icons.edit_outlined,
-                    color: AppColors.caramel,
+                    color: AppColors.black,
                     size: 20,
                   ),
                   onPressed: onEdit,

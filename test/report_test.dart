@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:kaiwan_chuaiduai/data/app_database.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/report_export.dart';
 
+import 'old_schema.dart';
 import 'test_store.dart';
 
 // ทดสอบตารางสรุปเคส (case_reports): ที่มาของแถว, การแก้ไข, ตัวกรอง, การเก็บลงฐานข้อมูล, CSV
@@ -148,7 +148,7 @@ void main() {
       path,
       options: OpenDatabaseOptions(
         version: 1,
-        onCreate: (db, _) => AppDatabase.createV1Tables(db),
+        onCreate: (db, _) => createV1Tables(db),
       ),
     );
     await old.close();

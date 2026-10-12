@@ -10,11 +10,10 @@
 //   (เวอร์ชัน 3: messages เพิ่มคอลัมน์ไฟล์แนบ attachment / attachment_name / is_image)
 //
 // วิธีใช้ร่วมกับ AppData: ตอนเปิดแอปโหลดทั้งหมดขึ้นหน่วยความจำ ([loadAll])
-// แล้วทุกครั้งที่ข้อมูลเปลี่ยน store จะเรียก save... ให้เขียนลงฐานข้อมูลทันที
+// แล้วทุกครั้งที่ข้อมูลเปลี่ยน Provider จะเรียก save... ให้เขียนลงฐานข้อมูลทันที
 // การเขียนทำเรียงคิว (ทีละคำสั่ง ตามลำดับ) จึงไม่ต้องรอใน UI
 //
 // หมายเหตุ: SQLite เก็บเฉพาะในเครื่องนี้ แชทข้ามเครื่องต้องมี server ภายหลัง
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart' show Color;
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -62,10 +61,6 @@ class AppDatabase {
     return AppDatabase._(db);
   }
 
-  /// ตารางของฐานข้อมูลเวอร์ชัน 1 (ใช้ทดสอบการอัปเกรดเวอร์ชันด้วย)
-  @visibleForTesting
-  static Future<void> createV1Tables(Database db) => _createTables(db);
-
   static Future<void> _createTables(Database db) async {
     await db.execute('''
       CREATE TABLE users (
@@ -79,7 +74,7 @@ class AppDatabase {
         name_en TEXT NOT NULL DEFAULT '',
         phone TEXT NOT NULL DEFAULT '',
         nickname TEXT NOT NULL DEFAULT '',
-        specialty TEXT NOT NULL DEFAULT '',
+        specialty TEXT NOT NULL DEFAULT '', -- เลิกใช้แล้ว (เคยเก็บความเชี่ยวชาญ) คงคอลัมน์ไว้ให้เข้ากับฐานข้อมูลเดิม
         avatar_color INTEGER NOT NULL
       )''');
     await db.execute('''
@@ -289,7 +284,6 @@ class AppDatabase {
       'name_en': u.nameEn,
       'phone': u.phone,
       'nickname': u.nickname,
-      'specialty': u.specialty,
       'avatar_color': u.avatarColor.toARGB32(),
     }, conflictAlgorithm: ConflictAlgorithm.replace),
   );
@@ -388,7 +382,7 @@ class AppDatabase {
           }, conflictAlgorithm: ConflictAlgorithm.replace),
   );
 
-  /// ลบข้อมูลทั้งหมด (ใช้ตอนรีเซ็ตข้อมูลทดลอง)
+  /// ลบข้อมูลทั้งหมด (ใช้ตอนรีเซ็ตข้อมูล)
   void clearAll() {
     _savedMessages.clear();
     _enqueue(
@@ -420,7 +414,6 @@ class AppDatabase {
     nameEn: r['name_en'] as String,
     phone: r['phone'] as String,
     nickname: r['nickname'] as String,
-    specialty: r['specialty'] as String,
     avatarColor: Color(r['avatar_color'] as int),
   );
 

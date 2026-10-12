@@ -85,5 +85,8 @@
   - `app_providers.dart` รวมทุกตัวด้วย `MultiProvider` + `ChangeNotifierProxyProvider` (Chat/Appointment/Report พึ่ง Auth, Chat พึ่ง Report)
   - หน้าจอใช้ `context.watch<...>()` ใน build (วาดใหม่เมื่อข้อมูลเปลี่ยน) และ `context.read<...>()` ในปุ่ม/คำสั่ง
 - `assets/fonts/` — ฟอนต์ Sarabun (OFL) ใช้วาดตารางใน PDF
-- `lib/screens/` — auth, student, staff, chat, profile
-- `lib/widgets/common.dart` — การ์ดเมนู, กระดิ่งแจ้งเตือน, avatar, ป้ายกราฟิก, แผงเหลืองขอบโค้ง
+- `lib/screens/` — หน้าจอ
+  - `auth_screens.dart` login / สมัคร / หน้าขอความยินยอม · `student_screens.dart` · `staff_screens.dart` · `profile_screen.dart` · `report_screen.dart`
+  - `chat/` หน้าแชท: `chat_screen.dart` (หน้าหลัก), `message_bubble.dart`, `attachments_view.dart` (รูป/ไฟล์แนบ), `emergency_card.dart` (เบอร์ฉุกเฉิน), `composer.dart` (ช่องพิมพ์), `summary_sheet.dart` (สรุปตอนจบแชท)
+  - `appointment/` นัดหมาย: `booking_screen.dart` (จองนัด), `my_appointments.dart` (นิสิต), `staff_appointments.dart` (เจ้าหน้าที่ + เสนอเวลาใหม่), `appointment_card.dart` (การ์ดนัด + ป้ายสถานะ)
+- `lib/widgets/common.dart` — การ์ดเมนู (`MenuCard`), รูปโปรไฟล์, ป้ายกราฟิก, แผงเหลืองขอบโค้ง, กันออกจากฟอร์มที่กรอกค้าง (PopScope)
