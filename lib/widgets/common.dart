@@ -2,6 +2,7 @@
 // หัวข้อของแต่ละขั้นตอน และฟังก์ชันแสดงเวลา
 import 'package:flutter/material.dart';
 
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 
@@ -178,7 +179,7 @@ class BellBadge extends StatelessWidget {
 }
 
 /// รูปโปรไฟล์วงกลม
-/// เจ้าหน้าที่ = 👩🏻‍💼 (emoji แทนรูปจริงใน prototype), นักศึกษา = รูปแมวไข่หวาน
+/// เจ้าหน้าที่ = รูปจริงจาก [AppStore.staffPhotos] (ถ้าไม่มีรูปใช้ emoji 👩🏻‍💼), นักศึกษา = รูปแมวไข่หวาน
 class StaffAvatar extends StatelessWidget {
   const StaffAvatar({super.key, required this.user, this.size = 48});
   final AppUser user;
@@ -186,6 +187,8 @@ class StaffAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final emoji = Text('👩🏻‍💼', style: TextStyle(fontSize: size * 0.55));
+    final photo = AppStore.staffPhotos[user.id];
     return Stack(
       children: [
         Container(
@@ -196,9 +199,20 @@ class StaffAvatar extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          // นักศึกษา (ผู้มาปรึกษา) ใช้รูปแมวไข่หวานทั้งหมด, เจ้าหน้าที่ใช้ emoji
+          // นักศึกษา (ผู้มาปรึกษา) ใช้รูปแมวไข่หวานทั้งหมด
+          // เจ้าหน้าที่ใช้รูปจริง ถ้าไม่มีรูป (หรือโหลดไม่ได้) ใช้ emoji แทน
           child: user.isStaff
-              ? Text('👩🏻‍💼', style: TextStyle(fontSize: size * 0.55))
+              ? (photo == null
+                    ? emoji
+                    : ClipOval(
+                        child: Image.asset(
+                          photo,
+                          width: size,
+                          height: size,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => emoji,
+                        ),
+                      ))
               : ClipOval(
                   child: Image.asset(
                     kaiwanCatImage,

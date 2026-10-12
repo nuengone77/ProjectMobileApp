@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart' show DatabaseFactory;
 
+import '../config/staff_accounts.dart';
 import 'app_database.dart';
 import 'attachments.dart';
 import 'models.dart';
@@ -19,8 +20,8 @@ import 'registration_rules.dart';
 ///
 /// ตอนต่อ backend จริง ให้แทนที่เมธอดในไฟล์นี้ด้วยการเรียก API
 /// โดยคงชื่อเมธอดเดิมไว้ หน้าจอจะได้ไม่ต้องแก้มาก
-class MockStore extends ChangeNotifier {
-  MockStore._(this._db, this._demoData);
+class AppStore extends ChangeNotifier {
+  AppStore._(this._db, this._demoData);
 
   final AppDatabase _db;
 
@@ -31,13 +32,14 @@ class MockStore extends ChangeNotifier {
   /// และคืนสถานะล็อกอินค้างไว้ (ถ้ายังไม่ได้ออกจากระบบ)
   /// [factory]/[path]/[demoData] ใช้ตอนทดสอบ ปกติไม่ต้องส่ง
   /// แอปจริงเริ่มจากฐานข้อมูลว่าง มีแค่บัญชีเจ้าหน้าที่ 3 คน
-  static Future<MockStore> open({
+  static Future<AppStore> open({
     DatabaseFactory? factory,
     String? path,
     bool demoData = false,
   }) async {
     final db = await AppDatabase.open(factory: factory, path: path);
-    final s = MockStore._(db, demoData);
+    final s = AppStore._(db, demoData);
+    db.onWriteError = (e) => s.onSaveFailed?.call(e);
     if (await db.isEmpty()) {
       s._seedAll();
     } else {
@@ -55,6 +57,10 @@ class MockStore extends ChangeNotifier {
     }
     return s;
   }
+
+  /// ถูกเรียกเมื่อบันทึกข้อมูลลงฐานข้อมูลไม่สำเร็จ
+  /// main.dart ตั้งให้ขึ้นแถบแจ้งเตือนล่างจอ ผู้ใช้จะได้รู้ว่าข้อมูลล่าสุดอาจไม่ถูกเก็บ
+  void Function(Object error)? onSaveFailed;
 
   /// รอให้การบันทึกลงฐานข้อมูลที่ค้างอยู่เสร็จ (ใช้ตอนทดสอบ)
   Future<void> flush() => _db.flush();
@@ -783,40 +789,56 @@ class MockStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// รูปเจ้าหน้าที่ (ตาม id) ใช้แทน emoji ในวงกลมรูปโปรไฟล์
+  /// รูปต้นฉบับเก็บไว้ที่ design/staff_photos/ ส่วนในแอปใช้รูปที่ครอปเป็นสี่เหลี่ยมจัตุรัส 400x400
+  /// เจ้าหน้าที่ที่ไม่มีในรายการนี้จะแสดง emoji 👩🏻‍💼 เหมือนเดิม
+  static const staffPhotos = {
+    'st1': 'assets/images/staff_manao.jpg', // มะนาว
+    'st2': 'assets/images/staff_naen.jpg', // แนน
+    'st3': 'assets/images/staff_kwan.jpg', // ขวัญ
+  };
+
   // ---------------------------------------------------------------- seed data
   // ข้อมูลตั้งต้นตอนเปิดแอปครั้งแรก (และตอนรีเซ็ต)
 
-  /// บัญชีเจ้าหน้าที่ 3 คน (เจ้าหน้าที่สมัครเองไม่ได้) มีทุกครั้ง
+  /// สีพื้นหลังรูปโปรไฟล์ของเจ้าหน้าที่ (วนใช้ตามลำดับ)
+  static const _staffColors = [
+    Color(0xFFB9D7E8),
+    Color(0xFFF6C9D0),
+    Color(0xFFCDE8C5),
+  ];
+
+  /// บัญชีนักศึกษาทดสอบ 1 บัญชี ให้ผู้สอน/ผู้ทดลองล็อกอินได้ทันทีโดยไม่ต้องสมัคร
+  /// ข้อมูลสมมติที่ผ่านเงื่อนไขการลงทะเบียน · รหัสผ่านทดสอบ ไม่ใช่รหัสจริงของใคร
+  static const testStudentEmail = 'testerk67@nu.ac.th';
+  static const testStudentPassword = 'test1234';
+
+  /// ข้อมูลตั้งต้นที่มีทุกครั้ง:
+  /// - บัญชีเจ้าหน้าที่จาก lib/config/staff_accounts.dart (ไม่ได้ commit เพราะมีรหัสผ่าน)
+  ///   id = st1, st2, ... ตามลำดับในไฟล์ (รูปเจ้าหน้าที่ใน [staffPhotos] จับคู่ด้วย id นี้)
+  /// - บัญชีนักศึกษาทดสอบ 1 บัญชี
   void _seed() {
     users.addAll([
-      // บัญชีเจ้าหน้าที่ (สร้างไว้ให้แล้ว มี 3 คน ไม่ต้องสมัคร)
-      // ชื่อเล่นเป็นชื่อชั่วคราว แก้เป็นชื่อจริงได้ที่นี่
+      for (final (i, a) in staffAccounts.indexed)
+        AppUser(
+          id: 'st${i + 1}',
+          email: a.email.trim().toLowerCase(),
+          passwordHash: hashPassword(a.email, a.password),
+          name: a.name,
+          nickname: a.nickname,
+          avatarColor: _staffColors[i % _staffColors.length],
+          role: Role.staff,
+        ),
       AppUser(
-        id: 'st1',
-        email: 'piyaromk@nu.ac.th',
-        passwordHash: hashPassword('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
-        name: 'เจ้าหน้าที่',
-        nickname: 'มะนาว',
-        avatarColor: const Color(0xFFB9D7E8),
-        role: Role.staff,
-      ),
-      AppUser(
-        id: 'st2',
-        email: 'khuwnruanep@nu.ac.th',
-        passwordHash: hashPassword('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep'),
-        name: 'เจ้าหน้าที่',
-        nickname: 'เเนน',
-        avatarColor: const Color(0xFFF6C9D0),
-        role: Role.staff,
-      ),
-      AppUser(
-        id: 'st3',
-        email: 'chonnikank@nu.ac.th',
-        passwordHash: hashPassword('chonnikank@nu.ac.th', 'kaiwanchonnikank'),
-        name: 'เจ้าหน้าที่',
-        nickname: 'ขวัญ',
-        avatarColor: const Color(0xFFCDE8C5),
-        role: Role.staff,
+        id: 'tester',
+        email: testStudentEmail,
+        passwordHash: hashPassword(testStudentEmail, testStudentPassword),
+        name: 'ทดสอบ ระบบ',
+        nameEn: 'Tester Kaiwan',
+        studentId: '67310001',
+        phone: '0800000000',
+        major: 'สาขาวิชาวิทยาการคอมพิวเตอร์',
+        role: Role.student,
       ),
     ]);
   }
@@ -1061,5 +1083,5 @@ class MockStore extends ChangeNotifier {
 }
 
 /// store ตัวเดียวที่ทั้งแอปใช้ร่วมกัน (import ไฟล์นี้แล้วเรียก `store` ได้เลย)
-/// ต้องเปิดก่อนใช้: `store = await MockStore.open();` (ทำใน main.dart)
-late MockStore store;
+/// ต้องเปิดก่อนใช้: `store = await AppStore.open();` (ทำใน main.dart)
+late AppStore store;

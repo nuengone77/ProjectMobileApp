@@ -1,7 +1,7 @@
-// จุดเริ่มต้นของแอป "ไข่หวานช่วยด้วย" (prototype ใช้ mock data)
+// จุดเริ่มต้นของแอป "ไข่หวานช่วยด้วย" (ข้อมูลเก็บใน SQLite บนเครื่อง)
 //
 // โครงสร้างโฟลเดอร์:
-//   lib/data/     ข้อมูลและ logic (models + MockStore ที่จำลองแทน backend)
+//   lib/data/     ข้อมูลและ logic (models + AppStore + ฐานข้อมูล SQLite)
 //   lib/screens/  หน้าจอแต่ละส่วน (login, นักศึกษา, เจ้าหน้าที่, แชท, โปรไฟล์)
 //   lib/widgets/  widget ที่ใช้ซ้ำหลายหน้า (การ์ดเมนูสีพีช, กระดิ่งแจ้งเตือน, avatar)
 //   lib/theme.dart สี ฟอนต์ และสไตล์กลางของทั้งแอป
@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'data/attachments.dart';
-import 'data/mock_store.dart';
+import 'data/app_store.dart';
 import 'screens/auth_screens.dart';
 import 'screens/staff_screens.dart';
 import 'screens/student_screens.dart';
@@ -19,15 +19,29 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // เปิดฐานข้อมูล SQLite และโหลดข้อมูล (รวมถึงผู้ที่ล็อกอินค้างไว้) ก่อนแสดงหน้าแรก
   await Attachments.init();
-  store = await MockStore.open();
+  store = await AppStore.open();
   // รีเซ็ตข้อมูลทดลอง: รันด้วย flutter run --dart-define=RESET_DB=true
   // ไม่มีปุ่มในแอปให้ผู้ใช้กด
   if (const bool.fromEnvironment('RESET_DB')) {
     store.resetData();
     await store.flush();
   }
+  // บันทึกลงฐานข้อมูลไม่สำเร็จ (เช่น พื้นที่เครื่องเต็ม) -> แจ้งผู้ใช้ด้วยแถบล่างจอ ไม่เงียบหายไปเฉยๆ
+  store.onSaveFailed = (_) => appMessengerKey.currentState
+    ?..hideCurrentSnackBar()
+    ..showSnackBar(
+      const SnackBar(
+        content: Text(
+          'บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่ '
+          '(ข้อมูลล่าสุดอาจหายเมื่อปิดแอป)',
+        ),
+      ),
+    );
   runApp(const KaiwanApp());
 }
+
+/// ใช้แสดงแถบแจ้งเตือน (SnackBar) จากนอกหน้าจอ เช่น ตอนบันทึกข้อมูลไม่สำเร็จ
+final appMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 /// Widget รากของแอป: ตั้งค่าธีมและกำหนดหน้าแรกเป็น [_RoleGate]
 class KaiwanApp extends StatelessWidget {
@@ -38,6 +52,7 @@ class KaiwanApp extends StatelessWidget {
     return MaterialApp(
       title: 'ไข่หวานช่วยด้วย',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: appMessengerKey,
       theme: buildTheme(),
       // ภาษาไทยสำหรับ widget มาตรฐาน (เช่น ปฏิทินเลือกวันนัดหมาย)
       locale: const Locale('th'),

@@ -11,7 +11,7 @@
 //                         -> นักศึกษากด “ตกลงเวลานี้” หรือ “เลือกเวลาอื่น”
 import 'package:flutter/material.dart';
 
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -20,8 +20,8 @@ import '../widgets/common.dart';
 DateTime firstBookableDay() {
   final now = DateTime.now();
   var d = DateTime(now.year, now.month, now.day);
-  while (!MockStore.isOfficeDay(d) ||
-      !MockStore.slotsOf(d).any(MockStore.isBookable)) {
+  while (!AppStore.isOfficeDay(d) ||
+      !AppStore.slotsOf(d).any(AppStore.isBookable)) {
     d = d.add(const Duration(days: 1));
   }
   return d;
@@ -43,7 +43,7 @@ class SlotDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slots = MockStore.slotsOf(day).where(MockStore.isBookable).toList();
+    final slots = AppStore.slotsOf(day).where(AppStore.isBookable).toList();
     return DropdownButtonFormField<DateTime>(
       // key ตามวัน: เปลี่ยนวันแล้วล้างเวลาที่เลือกไว้
       key: ValueKey(day),
@@ -134,7 +134,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
               initialDate: _day,
               firstDate: today,
               lastDate: today.add(const Duration(days: 60)),
-              selectableDayPredicate: MockStore.isOfficeDay,
+              selectableDayPredicate: AppStore.isOfficeDay,
               onDateChanged: (d) => setState(() {
                 _day = d;
                 _slot = null;
@@ -261,11 +261,11 @@ class OfficeInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            MockStore.officeName,
+            AppStore.officeName,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
-          row(Icons.place_outlined, MockStore.officeLocation),
-          row(Icons.schedule, MockStore.officeHoursText),
+          row(Icons.place_outlined, AppStore.officeLocation),
+          row(Icons.schedule, AppStore.officeHoursText),
         ],
       ),
     );
@@ -534,7 +534,7 @@ class _ProposeTimeSheetState extends State<_ProposeTimeSheet> {
   DateTime _initialDay() {
     final s = widget.appointment.start;
     final day = DateTime(s.year, s.month, s.day);
-    return MockStore.slotsOf(day).any(MockStore.isBookable)
+    return AppStore.slotsOf(day).any(AppStore.isBookable)
         ? day
         : firstBookableDay();
   }
@@ -547,7 +547,7 @@ class _ProposeTimeSheetState extends State<_ProposeTimeSheet> {
       initialDate: _day,
       firstDate: today,
       lastDate: today.add(const Duration(days: 60)),
-      selectableDayPredicate: MockStore.isOfficeDay,
+      selectableDayPredicate: AppStore.isOfficeDay,
     );
     if (d != null) {
       setState(() {
@@ -685,7 +685,7 @@ class AppointmentCard extends StatelessWidget {
           if (forStaff)
             Text('${student.name} · ${student.major}')
           else
-            const Text('${MockStore.officeName} · ${MockStore.officeLocation}'),
+            const Text('${AppStore.officeName} · ${AppStore.officeLocation}'),
           // นัดกับใคร: ฝั่งเจ้าหน้าที่บอกว่าขอตัวเองโดยตรงไหม, ฝั่งนักศึกษาบอกว่าส่งถึงใคร
           Padding(
             padding: const EdgeInsets.only(top: 4),

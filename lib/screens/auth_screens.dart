@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/registration_rules.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -339,7 +339,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ...digitsOnly,
                   LengthLimitingTextInputFormatter(10),
                 ],
-                validator: (v) => (v == null || !MockStore.isValidPhone(v))
+                validator: (v) => (v == null || !AppStore.isValidPhone(v))
                     ? 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0'
                     : null,
               ),
@@ -347,7 +347,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _choice(
                 hint: 'ภาควิชา',
                 value: _department,
-                options: MockStore.departments.keys.toList(),
+                options: AppStore.departments.keys.toList(),
                 onChanged: (v) => setState(() {
                   _department = v;
                   _major = null; // เปลี่ยนภาควิชาแล้วให้เลือกสาขาใหม่
@@ -360,7 +360,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 key: ValueKey(_department),
                 hint: _department == null ? 'สาขา (เลือกภาควิชาก่อน)' : 'สาขา',
                 value: _major,
-                options: MockStore.departments[_department] ?? const [],
+                options: AppStore.departments[_department] ?? const [],
                 onChanged: _department == null
                     ? null
                     : (v) => setState(() => _major = v),

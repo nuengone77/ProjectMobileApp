@@ -10,7 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/attachments.dart';
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -224,7 +224,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final me = store.currentUser;
         if (me == null) return const SizedBox();
         final c = conv;
-        final cat = MockStore.category(c.categoryId);
+        final cat = AppStore.category(c.categoryId);
         final AppUser? other = me.isStaff
             ? store.user(c.studentId)
             : (c.staffId == null ? null : store.user(c.staffId!));
@@ -320,7 +320,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     // แสดงเบอร์ฉุกเฉินจากค่าปัจจุบันเสมอ (ไม่ใช้ข้อความที่บันทึกไว้ตอนเปิดห้อง)
                     // แก้ emergencyPhone แล้วห้องเก่าก็แสดงเบอร์ใหม่ด้วย
                     if (m.isAlert) {
-                      return const _AlertNote(text: MockStore.emergencyMessage);
+                      return const _AlertNote(text: AppStore.emergencyMessage);
                     }
                     if (m.isSystem) return _SystemNote(text: m.text);
                     final mine =
@@ -371,7 +371,7 @@ class _TopicBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urgent = MockStore.category(conv.categoryId).urgent;
+    final urgent = AppStore.category(conv.categoryId).urgent;
     final scope = urgent
         ? 'ขอความช่วยเหลือแบบเร่งด่วน'
         : conv.isSpecific
@@ -651,13 +651,13 @@ class _AlertNote extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     var ok = false;
     try {
-      ok = await launchUrl(Uri(scheme: 'tel', path: MockStore.emergencyPhone));
+      ok = await launchUrl(Uri(scheme: 'tel', path: AppStore.emergencyPhone));
     } catch (_) {}
     if (!ok) {
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
-            'อุปกรณ์นี้โทรออกไม่ได้ กรุณาโทร ${MockStore.emergencyPhone}',
+            'อุปกรณ์นี้โทรออกไม่ได้ กรุณาโทร ${AppStore.emergencyPhone}',
           ),
         ),
       );

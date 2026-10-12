@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:kaiwan_chuaiduai/data/app_database.dart';
-import 'package:kaiwan_chuaiduai/data/mock_store.dart';
+import 'package:kaiwan_chuaiduai/data/app_store.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/report_export.dart';
 
@@ -13,13 +13,13 @@ import 'test_store.dart';
 // ทดสอบตารางสรุปเคส (case_reports): ที่มาของแถว, การแก้ไข, ตัวกรอง, การเก็บลงฐานข้อมูล, CSV
 void main() {
   /// ล็อกอินเจ้าหน้าที่คนที่ 1
-  void loginStaff1(MockStore s) {
+  void loginStaff1(AppStore s) {
     s.logout();
-    s.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    s.login(staff1.email, staff1.password);
   }
 
   /// นักศึกษาทดลองเปิดแชทเจาะจงกับเจ้าหน้าที่คนที่ 1 แล้วเจ้าหน้าที่จบพร้อมสรุป
-  Conversation closedChat(MockStore s) {
+  Conversation closedChat(AppStore s) {
     s.logout();
     s.login('somjaij67@nu.ac.th', '1234');
     final c = s.openConversation(categoryId: 'urgent');
@@ -50,7 +50,7 @@ void main() {
 
     // เจ้าหน้าที่คนอื่นไม่เห็นแถวนี้
     s.logout();
-    s.login('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep');
+    s.login(staff2.email, staff2.password);
     expect(s.myReports().any((r) => r.conversationId == c.id), isFalse);
   });
 

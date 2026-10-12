@@ -8,7 +8,7 @@
 // แท็บอื่น: นัดหมาย (StaffAppointmentsScreen), โปรไฟล์
 import 'package:flutter/material.dart';
 
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -153,7 +153,7 @@ class StaffHome extends StatelessWidget {
           const SizedBox(height: 24),
           const _Heading('ประวัติการถาม/ตอบ (จบแล้ว)'),
           // แต่ละหัวข้อ = ประวัติแชทที่จบการปรึกษาแล้ว (แชทที่ยังคุยอยู่ดูที่แท็บ “ข้อความ”)
-          for (final c in MockStore.categories)
+          for (final c in AppStore.categories)
             Builder(
               builder: (context) {
                 final done = store.staffConversations(
@@ -287,7 +287,7 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
     // หัวข้อเร่งด่วนเป็นแชทรวมเสมอ ไม่ต้องมีตัวกรองส่วนรวม/ส่วนตัว
     final showFilter =
         widget.categoryId == null ||
-        !MockStore.category(widget.categoryId!).urgent;
+        !AppStore.category(widget.categoryId!).urgent;
     final me = store.currentUser;
     final profile = widget.showProfile && me != null;
     return Scaffold(

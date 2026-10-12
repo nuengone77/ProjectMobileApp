@@ -12,7 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../data/registration_rules.dart';
 import '../data/report_export.dart';
@@ -314,7 +314,7 @@ class _ReportTable extends StatelessWidget {
             for (final r in rows)
               DataRow(
                 color: WidgetStatePropertyAll(
-                  MockStore.category(r.categoryId).urgent
+                  AppStore.category(r.categoryId).urgent
                       ? AppColors.urgentSoft
                       : AppColors.surface,
                 ),
@@ -513,9 +513,7 @@ class _ReportEditorState extends State<_ReportEditor> {
                     ),
                     onPressed: _pickDateTime,
                     icon: const Icon(Icons.event),
-                    label: Text(
-                      'วันที่: ${ReportExport.dateText(_date)}',
-                    ),
+                    label: Text('วันที่: ${ReportExport.dateText(_date)}'),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -545,7 +543,7 @@ class _ReportEditorState extends State<_ReportEditor> {
                   decoration: _box('ประเภทการถาม/ตอบ'),
                   borderRadius: BorderRadius.circular(14),
                   items: [
-                    for (final c in MockStore.categories)
+                    for (final c in AppStore.categories)
                       DropdownMenuItem(
                         value: c.id,
                         child: Text(ReportExport.categoryLabel(c.id)),

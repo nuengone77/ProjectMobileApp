@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -76,7 +76,7 @@ class ProfileScreen extends StatelessWidget {
                 _Info(
                   icon: Icons.account_balance_outlined,
                   label: 'ภาควิชา',
-                  value: MockStore.departmentOf(me.major) ?? 'ไม่ได้ระบุ',
+                  value: AppStore.departmentOf(me.major) ?? 'ไม่ได้ระบุ',
                   onEdit: () => _editMajor(context, me.major),
                 ),
                 _Info(
@@ -186,7 +186,7 @@ Future<void> showStudentProfile(BuildContext context, AppUser student) {
             _Info(
               icon: Icons.account_balance_outlined,
               label: 'ภาควิชา',
-              value: MockStore.departmentOf(student.major) ?? 'ไม่ได้ระบุ',
+              value: AppStore.departmentOf(student.major) ?? 'ไม่ได้ระบุ',
             ),
             _Info(
               icon: Icons.school_outlined,
@@ -282,7 +282,7 @@ class _PhoneDialogState extends State<_PhoneDialog> {
   }
 
   void _save() {
-    if (!MockStore.isValidPhone(_phone.text)) {
+    if (!AppStore.isValidPhone(_phone.text)) {
       setState(() => _error = 'เบอร์โทร 10 หลัก ขึ้นต้นด้วย 0');
       return;
     }
@@ -341,7 +341,7 @@ class _MajorSheet extends StatefulWidget {
 }
 
 class _MajorSheetState extends State<_MajorSheet> {
-  late String? _department = MockStore.departmentOf(widget.current);
+  late String? _department = AppStore.departmentOf(widget.current);
   late String? _major = _department == null ? null : widget.current;
 
   @override
@@ -386,7 +386,7 @@ class _MajorSheetState extends State<_MajorSheet> {
             dropdown(
               label: 'ภาควิชา',
               value: _department,
-              options: MockStore.departments.keys.toList(),
+              options: AppStore.departments.keys.toList(),
               // เปลี่ยนภาควิชา -> ต้องเลือกสาขาใหม่
               onChanged: (v) => setState(() {
                 _department = v;
@@ -397,7 +397,7 @@ class _MajorSheetState extends State<_MajorSheet> {
             dropdown(
               label: 'สาขา',
               value: _major,
-              options: MockStore.departments[_department] ?? const [],
+              options: AppStore.departments[_department] ?? const [],
               onChanged: (v) => setState(() => _major = v),
             ),
             const SizedBox(height: 20),

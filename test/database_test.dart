@@ -1,9 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:kaiwan_chuaiduai/data/app_database.dart';
 
 import 'package:kaiwan_chuaiduai/data/attachments.dart';
-import 'package:kaiwan_chuaiduai/data/mock_store.dart';
+import 'package:kaiwan_chuaiduai/config/staff_accounts.dart';
+import 'package:kaiwan_chuaiduai/data/app_store.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/passwords.dart';
 
@@ -23,28 +26,38 @@ void main() {
   test('เปิดครั้งแรกใส่ข้อมูลตั้งต้น และเก็บรหัสผ่านเป็น hash', () async {
     final s = await openTestStore(path: path);
     expect(s.staff.length, 3);
-    expect(s.users.length, 6);
-    final staff1 = s.users.firstWhere((u) => u.email == 'piyaromk@nu.ac.th');
-    expect(staff1.passwordHash, isNot('kaiwanpiyaromk'));
     expect(
-      staff1.passwordHash,
-      hashPassword('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
-    );
-    expect(s.login('piyaromk@nu.ac.th', 'wrong'), 'รหัสผ่านไม่ถูกต้อง');
+      s.users.length,
+      7,
+    ); // เจ้าหน้าที่ 3 + นักศึกษาทดสอบ 1 + นักศึกษาทดลอง 3
+    final u = s.users.firstWhere((u) => u.email == staff1.email);
+    expect(u.passwordHash, isNot(staff1.password));
+    expect(u.passwordHash, hashPassword(staff1.email, staff1.password));
+    expect(s.login(staff1.email, 'wrong'), 'รหัสผ่านไม่ถูกต้อง');
   });
 
-  test('แอปจริงเริ่มจากข้อมูลว่าง: มีแค่บัญชีเจ้าหน้าที่ 3 คน', () async {
-    final s = await openTestStore(path: path, demoData: false);
-    expect(s.users.length, 3);
-    expect(s.users.every((u) => u.isStaff), isTrue);
-    expect(s.conversations, isEmpty);
-    expect(s.appointments, isEmpty);
-    expect(s.reports, isEmpty);
-    // รีเซ็ตแล้วก็ยังว่างเหมือนเดิม
-    s.resetData();
-    expect(s.users.length, 3);
-    expect(s.conversations, isEmpty);
-  });
+  test(
+    'แอปจริงเริ่มจากข้อมูลว่าง: มีแค่บัญชีเจ้าหน้าที่ + นักศึกษาทดสอบ 1 บัญชี',
+    () async {
+      final s = await openTestStore(path: path, demoData: false);
+      expect(s.users.length, 4);
+      expect(s.staff.length, staffAccounts.length);
+      // นักศึกษาทดสอบล็อกอินได้ทันทีโดยไม่ต้องสมัคร
+      expect(
+        s.login(AppStore.testStudentEmail, AppStore.testStudentPassword),
+        isNull,
+      );
+      expect(s.currentUser!.studentId, '67310001');
+      s.logout();
+      expect(s.conversations, isEmpty);
+      expect(s.appointments, isEmpty);
+      expect(s.reports, isEmpty);
+      // รีเซ็ตแล้วก็ยังว่างเหมือนเดิม
+      s.resetData();
+      expect(s.users.length, 4);
+      expect(s.conversations, isEmpty);
+    },
+  );
 
   test('ข้อมูลยังอยู่หลังปิด-เปิดแอปใหม่ (รวมถึงล็อกอินค้างไว้)', () async {
     var s = await openTestStore(path: path);
@@ -55,7 +68,7 @@ void main() {
         email: 'nanthitb67@nu.ac.th',
         password: 'abcd',
         name: 'นันทิต บุญมี',
-        major: MockStore.majors.first,
+        major: AppStore.majors.first,
         studentId: '67313318',
         nameEn: 'Nanthit Bunmee',
         phone: '0899999999',
@@ -71,7 +84,7 @@ void main() {
     );
     // เจ้าหน้าที่จบแชทพร้อมสรุป + เสนอเวลานัดใหม่
     s.logout();
-    s.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    s.login(staff1.email, staff1.password);
     s.send(conv, 'ยินดีครับ');
     s.closeConversation(
       conv,
@@ -80,14 +93,14 @@ void main() {
       level: CaseLevel.large,
     );
     s.logout();
-    s.login('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep');
+    s.login(staff2.email, staff2.password);
     final newTime = appt.start.add(const Duration(days: 1));
     s.proposeAppointmentTime(appt, newTime, 'ช่วงนั้นไม่ว่าง');
     await s.flush();
 
     // เปิดใหม่จากไฟล์เดิม = เหมือนปิดแอปแล้วเปิดใหม่
     s = await openTestStore(path: path);
-    expect(s.currentUser?.email, 'khuwnruanep@nu.ac.th'); // ล็อกอินค้างไว้
+    expect(s.currentUser?.email, staff2.email); // ล็อกอินค้างไว้
 
     final student = s.users.firstWhere((u) => u.email == 'nanthitb67@nu.ac.th');
     expect(student.studentId, '67313318');
@@ -135,7 +148,7 @@ void main() {
 
     // ส่งแค่ไฟล์ (ไม่พิมพ์) ก็นับว่าทักแล้ว เจ้าหน้าที่เห็นห้อง
     s.logout();
-    s.login('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep');
+    s.login(staff2.email, staff2.password);
     expect(s.staffConversations().any((c) => c.id == conv.id), isTrue);
     await s.flush();
 
@@ -171,9 +184,27 @@ void main() {
       final me = s.currentUser!;
       expect(me.phone, '0891112222');
       expect(me.major, 'สาขาวิชาวิทยาการข้อมูล');
-      expect(MockStore.departmentOf(me.major), 'ภาควิชาคณิตศาสตร์');
+      expect(AppStore.departmentOf(me.major), 'ภาควิชาคณิตศาสตร์');
     },
   );
+
+  test('เขียนฐานข้อมูลไม่สำเร็จ -> แจ้ง onWriteError (ไม่เงียบหาย)', () async {
+    sqfliteFfiInit();
+    final db = await AppDatabase.open(
+      factory: databaseFactoryFfi,
+      path: inMemoryDatabasePath,
+    );
+    final errors = <Object>[];
+    db.onWriteError = errors.add;
+    await db.close(); // ปิดแล้วเขียนต่อ = เขียนไม่สำเร็จแน่นอน
+    db.setSetting('x', '1');
+    await db.flush();
+    expect(errors, hasLength(1));
+    // คิวยังใช้ต่อได้หลัง error (ไม่ค้าง)
+    db.setSetting('y', '2');
+    await db.flush();
+    expect(errors, hasLength(2));
+  });
 
   test('รีเซ็ตข้อมูลทดลอง: กลับเป็นข้อมูลตั้งต้นและออกจากระบบ', () async {
     var s = await openTestStore(path: path);
@@ -181,7 +212,7 @@ void main() {
       email: 'nanthitb67@nu.ac.th',
       password: 'abcd',
       name: 'นันทิต บุญมี',
-      major: MockStore.majors.first,
+      major: AppStore.majors.first,
       studentId: '67313318',
       nameEn: 'Nanthit Bunmee',
     );
@@ -191,7 +222,7 @@ void main() {
     await s.flush();
 
     s = await openTestStore(path: path);
-    expect(s.users.length, 6);
+    expect(s.users.length, 7);
     expect(s.users.any((u) => u.email == 'nanthitb67@nu.ac.th'), isFalse);
   });
 }

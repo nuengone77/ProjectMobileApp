@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kaiwan_chuaiduai/data/mock_store.dart';
+import 'package:kaiwan_chuaiduai/data/app_store.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/main.dart';
+import 'package:kaiwan_chuaiduai/screens/appointment_screens.dart';
 import 'package:kaiwan_chuaiduai/screens/auth_screens.dart';
 import 'package:kaiwan_chuaiduai/widgets/common.dart';
 
@@ -40,16 +41,16 @@ void main() {
     expect(find.text('ถาม/ตอบเรื่องทั่วไป'), findsOneWidget);
     expect(find.text('ขอความช่วยเหลือแบบเร่งด่วน'), findsOneWidget);
 
-    // ทั่วไป -> ผ่านแอป -> เลือกเจาะจง -> พี่ไข่หวาน 1 -> แชท
+    // ทั่วไป -> ผ่านแอป -> เลือกเจาะจง -> เจ้าหน้าที่คนที่ 1 -> แชท
     await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\nผ่านแอป'));
+    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.text('ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+      find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('พี่ไข่หวาน 1'));
+    await tester.tap(find.text(shown(staff1)));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'ทดสอบข้อความ');
@@ -62,7 +63,7 @@ void main() {
         c.messages.any((m) => m.text == 'ทดสอบข้อความ');
 
     store.logout();
-    store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    store.login(staff1.email, staff1.password);
     final convs = store.staffConversations(
       categoryId: 'general',
       specific: true,
@@ -73,7 +74,7 @@ void main() {
     );
 
     store.logout();
-    store.login('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep');
+    store.login(staff2.email, staff2.password);
     expect(store.staffConversations().any(hasMyMessage), isFalse);
     store.logout();
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -92,13 +93,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\nผ่านแอป'));
+    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานผ่านแอปพลิเคชัน'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.text('ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+      find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('พี่ไข่หวาน 3'));
+    await tester.tap(find.text(shown(staff3)));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsOneWidget); // อยู่หน้าแชท
 
@@ -125,7 +126,7 @@ void main() {
 
     final studentId = store.currentUser!.id;
     store.logout();
-    store.login('chonnikank@nu.ac.th', 'kaiwanchonnikank');
+    store.login(staff3.email, staff3.password);
     expect(store.staffConversations().contains(conv), isFalse);
 
     // พอนักศึกษาพิมพ์ทักแล้ว ห้องจึงขึ้นในรายการของเจ้าหน้าที่
@@ -137,7 +138,7 @@ void main() {
     store.send(conv, 'สวัสดีค่ะ');
     expect(store.myConversations().contains(conv), isTrue);
     store.logout();
-    store.login('chonnikank@nu.ac.th', 'kaiwanchonnikank');
+    store.login(staff3.email, staff3.password);
     expect(store.staffConversations().contains(conv), isTrue);
     store.logout();
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -151,7 +152,7 @@ void main() {
     await tester.tap(find.text('ขอความช่วยเหลือแบบเร่งด่วน'));
     await tester.pumpAndSettle();
     // ข้อความอัตโนมัติแจ้งเบอร์ฉุกเฉินขึ้นทันที
-    expect(find.text(MockStore.emergencyMessage), findsOneWidget);
+    expect(find.text(AppStore.emergencyMessage), findsOneWidget);
     // แชทส่วนรวม: นักศึกษาเห็นชื่อ “แชทรวมเจ้าหน้าที่” + รูปแมวไข่หวาน
     expect(find.text('แชทรวมเจ้าหน้าที่'), findsOneWidget);
     expect(find.byType(CatAvatar), findsOneWidget);
@@ -164,7 +165,7 @@ void main() {
           !c.closed,
     );
     store.logout();
-    store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    store.login(staff1.email, staff1.password);
     expect(store.staffConversations().contains(urgent), isFalse);
     store.logout();
     store.login('somjaij67@nu.ac.th', testPasswords['somjaij67@nu.ac.th']!);
@@ -174,8 +175,8 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     for (final (email, pw) in [
-      ('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
-      ('chonnikank@nu.ac.th', 'kaiwanchonnikank'),
+      (staff1.email, staff1.password),
+      (staff3.email, staff3.password),
     ]) {
       store.logout();
       store.login(email, pw);
@@ -205,10 +206,10 @@ void main() {
     await loginAsStudent(tester);
     await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\nที่ห้องกิจการนิสิต'));
+    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต'));
     await tester.pumpAndSettle();
     // ที่ห้อง -> คนไหนก็ได้ (แจ้งเตือนทุกคน) -> หน้าจอง
-    await tester.tap(find.text('ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)'));
+    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่คนไหนก็ได้)'));
     await tester.pumpAndSettle();
     expect(find.byType(CalendarDatePicker), findsOneWidget);
     expect(find.text('นัดกับพี่ไข่หวานคนไหนก็ได้'), findsOneWidget);
@@ -231,7 +232,7 @@ void main() {
 
     // เจ้าหน้าที่เห็นคำขอ แต่ไม่ว่าง -> เสนอเวลาใหม่
     store.logout();
-    store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    store.login(staff1.email, staff1.password);
     expect(
       store.staffAppointments(status: AppointmentStatus.pending).contains(mine),
       isTrue,
@@ -259,24 +260,24 @@ void main() {
     await loginAsStudent(tester);
     await tester.tap(find.text('ถาม/ตอบเรื่องทั่วไป'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ถามตอบกับพี่ไข่หวาน\nที่ห้องกิจการนิสิต'));
+    await tester.tap(find.text('ถามตอบกับพี่ไข่หวานที่ห้องกิจการนิสิต'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.text('ปรึกษากับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
+      find.text('ถามตอบกับพี่ไข่หวาน\n(เจ้าหน้าที่แบบเลือกเฉพาะเจาะจง)'),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('พี่ไข่หวาน 2'));
+    await tester.tap(find.text(shown(staff2)));
     await tester.pumpAndSettle();
-    expect(find.text('นัดกับ พี่ไข่หวาน 2'), findsOneWidget);
+    expect(find.text('นัดกับ ${shown(staff2)}'), findsOneWidget);
 
-    final start = MockStore.slotsOf(firstDayForTest()).last;
+    final start = AppStore.slotsOf(firstDayForTest()).last;
     final a = store.requestAppointment(start, '', staffId: 'st2');
 
     store.logout();
-    store.login('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep');
+    store.login(staff2.email, staff2.password);
     expect(store.staffAppointments().contains(a), isTrue);
     store.logout();
-    store.login('piyaromk@nu.ac.th', 'kaiwanpiyaromk');
+    store.login(staff1.email, staff1.password);
     expect(store.staffAppointments().contains(a), isFalse);
     store.logout();
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -285,7 +286,7 @@ void main() {
   testWidgets('staff closes chat with summary -> moves to history', (
     tester,
   ) async {
-    await loginAs(tester, 'piyaromk@nu.ac.th');
+    await loginAs(tester, staff1.email);
 
     // แท็บข้อความ -> เปิดแชทแรก
     await tester.tap(find.text('ข้อความ').last);
@@ -298,9 +299,9 @@ void main() {
     // เมนู … -> จบการปรึกษา -> กดบันทึกทั้งที่ยังไม่กรอก = ไม่ผ่าน
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('จบการปรึกษา'));
+    await tester.tap(find.text('จบการสนทนา'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('บันทึกและจบการปรึกษา'));
+    await tester.tap(find.text('บันทึกและจบการสนทนา'));
     await tester.pumpAndSettle();
     expect(find.text('กรุณากรอกช่องนี้'), findsNWidgets(2));
     expect(find.text('กรุณาเลือกระดับเคส'), findsOneWidget);
@@ -316,7 +317,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('กลาง 🟡').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('บันทึกและจบการปรึกษา'));
+    await tester.tap(find.text('บันทึกและจบการสนทนา'));
     await tester.pumpAndSettle();
 
     expect(conv.closed, isTrue);
@@ -382,7 +383,7 @@ void main() {
     expect(me.nameEn, 'Mai Thodsob');
     expect(me.phone, '0899999999');
     expect(me.major, 'สาขาวิชาเคมี');
-    expect(MockStore.departmentOf(me.major), 'ภาควิชาเคมี');
+    expect(AppStore.departmentOf(me.major), 'ภาควิชาเคมี');
     store.logout();
     await tester.pumpAndSettle(const Duration(seconds: 1));
   });
@@ -443,7 +444,7 @@ void main() {
     await tester.tap(find.byTooltip('แก้ไขสาขา'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.text(MockStore.departmentOf(store.currentUser!.major)!).last,
+      find.text(AppStore.departmentOf(store.currentUser!.major)!).last,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('ภาควิชาเคมี').last);
@@ -471,7 +472,15 @@ void main() {
     await tester.tap(find.text('นัดหมาย').last);
     await tester.pumpAndSettle();
 
-    final cancel = find.widgetWithText(TextButton, 'ยกเลิกนัด');
+    // หาปุ่มยกเลิกในการ์ดของนัดที่พี่เสนอเวลาใหม่ (อาจมีนัดอื่นจากเทสต์ก่อนหน้าอยู่ด้วย)
+    final card = find.ancestor(
+      of: find.textContaining(proposed.staffMessage),
+      matching: find.byType(AppointmentCard),
+    );
+    final cancel = find.descendant(
+      of: card,
+      matching: find.widgetWithText(TextButton, 'ยกเลิกนัด'),
+    );
     expect(cancel, findsOneWidget);
     await tester.tap(cancel);
     await tester.pumpAndSettle();
@@ -493,7 +502,7 @@ void main() {
   testWidgets('staff can view the student profile from the chat', (
     tester,
   ) async {
-    await loginAs(tester, 'piyaromk@nu.ac.th');
+    await loginAs(tester, staff1.email);
     await tester.tap(find.text('ข้อความ').last);
     await tester.pumpAndSettle();
     final conv = store.staffConversations(closed: false).first;
@@ -501,9 +510,9 @@ void main() {
     await tester.tap(find.byType(ListTile).first);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('ดูโปรไฟล์ผู้มาปรึกษา'));
+    await tester.tap(find.byTooltip('ดูโปรไฟล์นิสิต'));
     await tester.pumpAndSettle();
-    expect(find.text('โปรไฟล์ผู้มาปรึกษา'), findsOneWidget);
+    expect(find.text('โปรไฟล์ผู้มาถาม/ตอบ'), findsOneWidget);
     expect(find.text(student.studentId), findsOneWidget);
     expect(find.text('เบอร์โทรศัพท์'), findsOneWidget);
     expect(find.text(student.phone), findsOneWidget);
@@ -518,7 +527,7 @@ void main() {
     tester.view.physicalSize = const Size(900, 2000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await loginAs(tester, 'piyaromk@nu.ac.th');
+    await loginAs(tester, staff1.email);
     // ล็อกอินแล้วเปิดแท็บข้อความก่อน -> ไปแท็บภาพรวม
     expect(find.text('ภาพรวม'), findsOneWidget);
     await tester.tap(find.text('ภาพรวม'));
@@ -544,7 +553,7 @@ void main() {
     await tester.pump();
     expect(find.text('มณีรัตน์ แสงทอง'), findsOneWidget);
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'เรื่องที่ปรึกษา'),
+      find.widgetWithText(TextFormField, 'เรื่องที่ถาม/ตอบ'),
       'ปรึกษาเรื่องเพื่อน',
     );
     final add = find.text('เพิ่มลงตาราง');
@@ -562,7 +571,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('แก้ไขแถวในตาราง'), findsOneWidget);
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'เรื่องที่ปรึกษา'),
+      find.widgetWithText(TextFormField, 'เรื่องที่ถาม/ตอบ'),
       'แก้แล้ว',
     );
     await tester.tap(find.text('บันทึก'));
@@ -576,7 +585,7 @@ void main() {
 /// วันทำการถัดไป (ใช้สร้างเวลานัดในอนาคตแน่นอน)
 DateTime firstDayForTest() {
   var d = DateTime.now().add(const Duration(days: 1));
-  while (!MockStore.isOfficeDay(d)) {
+  while (!AppStore.isOfficeDay(d)) {
     d = d.add(const Duration(days: 1));
   }
   return d;

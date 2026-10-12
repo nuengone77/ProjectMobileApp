@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kaiwan_chuaiduai/data/mock_store.dart';
+import 'package:kaiwan_chuaiduai/data/app_store.dart';
 import 'package:kaiwan_chuaiduai/data/registration_rules.dart';
 
 import 'test_store.dart';
@@ -85,6 +85,19 @@ void main() {
     },
   );
 
+  test('บัญชีนักศึกษาทดสอบ (testerk67) ผ่านเงื่อนไขการลงทะเบียนทุกข้อ', () {
+    expect(
+      RegistrationRules.emailError(
+        AppStore.testStudentEmail,
+        nameEn: 'Tester Kaiwan',
+        studentId: '67310001',
+      ),
+      isNull,
+    );
+    expect(RegistrationRules.studentIdError('67310001'), isNull);
+    expect(RegistrationRules.nameEnError('Tester Kaiwan'), isNull);
+  });
+
   group('รหัสนิสิต', () {
     test('ตัวอย่างจากแบบ: 67313318 ผ่าน', () {
       expect(RegistrationRules.studentIdError('67313318'), isNull);
@@ -132,7 +145,7 @@ void main() {
         email: 'nanthitb67@gmail.com',
         password: 'abcd',
         name: 'นันทิต บุญมี',
-        major: MockStore.majors.first,
+        major: AppStore.majors.first,
         studentId: '67313318',
         nameEn: 'Nanthit Bunmee',
       ),
@@ -143,7 +156,7 @@ void main() {
         email: 'NanthitB67@nu.ac.th',
         password: 'abcd',
         name: 'นันทิต บุญมี',
-        major: MockStore.majors.first,
+        major: AppStore.majors.first,
         studentId: '67313318',
         nameEn: 'Nanthit Bunmee',
       ),
@@ -155,9 +168,9 @@ void main() {
   test('บัญชีเจ้าหน้าที่ 3 คนล็อกอินได้ด้วยรหัสที่กำหนด', () async {
     final s = await openTestStore();
     for (final (e, p) in [
-      ('piyaromk@nu.ac.th', 'kaiwanpiyaromk'),
-      ('khuwnruanep@nu.ac.th', 'kaiwankhuwnruanep'),
-      ('chonnikank@nu.ac.th', 'kaiwanchonnikank'),
+      (staff1.email, staff1.password),
+      (staff2.email, staff2.password),
+      (staff3.email, staff3.password),
     ]) {
       expect(s.login(e, p), isNull);
       expect(s.currentUser!.isStaff, isTrue);
@@ -170,15 +183,15 @@ void main() {
     'ภาควิชา/สาขา: หาภาควิชาจากสาขาได้ และสมัครด้วยสาขานอกรายการไม่ได้',
     () async {
       expect(
-        MockStore.departmentOf('สาขาวิชาวิทยาการข้อมูล'),
+        AppStore.departmentOf('สาขาวิชาวิทยาการข้อมูล'),
         'ภาควิชาคณิตศาสตร์',
       );
       expect(
-        MockStore.departmentOf('สาขาวิชาเทคโนโลยีสารสนเทศ'),
+        AppStore.departmentOf('สาขาวิชาเทคโนโลยีสารสนเทศ'),
         'ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ',
       );
-      expect(MockStore.departmentOf('วิศวกรรมคอมพิวเตอร์'), isNull);
-      expect(MockStore.majors.length, 11);
+      expect(AppStore.departmentOf('วิศวกรรมคอมพิวเตอร์'), isNull);
+      expect(AppStore.majors.length, 11);
       final s = await openTestStore();
       expect(
         s.register(

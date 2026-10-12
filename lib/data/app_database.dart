@@ -9,7 +9,7 @@
 //   case_reports   ตารางสรุปเคสของเจ้าหน้าที่ (สำเนาแยกจากแชท แก้แล้วไม่กระทบแชท) [เวอร์ชัน 2]
 //   (เวอร์ชัน 3: messages เพิ่มคอลัมน์ไฟล์แนบ attachment / attachment_name / is_image)
 //
-// วิธีใช้ร่วมกับ MockStore: ตอนเปิดแอปโหลดทั้งหมดขึ้นหน่วยความจำ ([loadAll])
+// วิธีใช้ร่วมกับ AppStore: ตอนเปิดแอปโหลดทั้งหมดขึ้นหน่วยความจำ ([loadAll])
 // แล้วทุกครั้งที่ข้อมูลเปลี่ยน store จะเรียก save... ให้เขียนลงฐานข้อมูลทันที
 // การเขียนทำเรียงคิว (ทีละคำสั่ง ตามลำดับ) จึงไม่ต้องรอใน UI
 //
@@ -154,11 +154,16 @@ class AppDatabase {
     );
   }
 
-  /// เพิ่มคำสั่งเขียนต่อท้ายคิว (error จะถูกพิมพ์ออก log ไม่ทำให้แอปค้าง)
+  /// ถูกเรียกเมื่อเขียนลงฐานข้อมูลไม่สำเร็จ (AppStore ส่งต่อให้หน้าจอแจ้งผู้ใช้)
+  void Function(Object error)? onWriteError;
+
+  /// เพิ่มคำสั่งเขียนต่อท้ายคิว
+  /// ถ้าเขียนไม่สำเร็จ: พิมพ์ลง log + แจ้ง [onWriteError] และคิวยังทำงานต่อได้ (แอปไม่ค้าง)
   void _enqueue(Future<void> Function() op) {
     _queue = _queue.then((_) => op()).catchError((Object e) {
       // ignore: avoid_print
       print('AppDatabase write failed: $e');
+      onWriteError?.call(e);
     });
   }
 

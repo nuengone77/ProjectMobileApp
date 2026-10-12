@@ -11,7 +11,7 @@
 //               - เลือกเจาะจง -> StaffPickerScreen (เลือกพี่) -> เข้าแชท
 import 'package:flutter/material.dart';
 
-import '../data/mock_store.dart';
+import '../data/app_store.dart';
 import '../data/models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -184,7 +184,7 @@ class StudentHome extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          for (final c in MockStore.categories)
+          for (final c in AppStore.categories)
             OrangeCard(
               title: c.title,
               subtitle: c.subtitle,
@@ -438,7 +438,7 @@ class ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = MockStore.category(conv.categoryId);
+    final cat = AppStore.category(conv.categoryId);
     final unread = forStaff
         ? store.unreadForStaff(conv)
         : store.unreadForStudent(conv);
@@ -501,7 +501,7 @@ class ConversationTile extends StatelessWidget {
             )
           else if (last != null)
             Text(
-              last.isAlert ? MockStore.emergencyMessage : last.preview,
+              last.isAlert ? AppStore.emergencyMessage : last.preview,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
