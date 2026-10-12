@@ -47,7 +47,8 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# บัญชีเจ้าหน้าที่จริง (มีรหัสผ่าน) ห้าม commit — คัดลอกจาก lib/config/staff_accounts.sample.dart
+# บัญชีเจ้าหน้าที่จริง (มีรหัสผ่าน) ห้าม commit — รูปแบบดูที่ assets/config/staff_accounts.sample.json
+/assets/config/staff_accounts.json
 /lib/config/staff_accounts.dart
 
 # รูปเจ้าหน้าที่จริง (ข้อมูลส่วนตัว) ไม่ขึ้น GitHub — เครื่องที่ไม่มีรูปจะแสดง emoji แทน

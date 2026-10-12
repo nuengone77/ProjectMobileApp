@@ -47,6 +47,7 @@ flutter:
   # รูปโลโก้ (ต้นฉบับอยู่ในโฟลเดอร์ design/)
   assets:
     - assets/images/
+    - assets/config/ # บัญชีเจ้าหน้าที่ staff_accounts.json (ไม่ขึ้น git ถ้าไม่มีใช้บัญชีตัวอย่าง)
     - assets/fonts/ # ฟอนต์ไทย Sarabun สำหรับ export PDF (OFL)
 
   # ฟอนต์ที่ใช้วาดตาราง PDF (วาดด้วย Flutter แล้วแปลงเป็นรูป ภาษาไทยจึงแสดงถูกต้อง)

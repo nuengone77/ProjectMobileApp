@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart' show DatabaseFactory;
 
-import '../config/staff_accounts.dart';
 import 'app_database.dart';
 import 'attachments.dart';
 import 'models.dart';
 import 'passwords.dart';
+import 'staff_account.dart';
 
 /// ข้อมูลกลางของแอป (ไม่ใช่ Provider) ที่ Provider ทุกตัวใช้ร่วมกัน
 ///
@@ -19,7 +19,7 @@ import 'passwords.dart';
 ///   AppointmentProvider (นัดหมาย), ReportProvider (ตารางสรุปเคส)
 /// หน้าจอเรียกใช้ผ่าน context.watch / context.read (บทที่ 10–11)
 class AppData {
-  AppData._(this.db, this._demoData);
+  AppData._(this.db, this._demoData, this.staffAccounts);
 
   /// ฐานข้อมูล SQLite (Provider ใช้บันทึกข้อมูลที่เปลี่ยน)
   final AppDatabase db;
@@ -27,19 +27,24 @@ class AppData {
   /// ใส่ข้อมูลทดลอง (นักศึกษา/แชท/นัด/เคสตัวอย่าง) ตอนสร้างฐานข้อมูลใหม่หรือไม่
   final bool _demoData;
 
+  /// บัญชีเจ้าหน้าที่ที่ใช้สร้างข้อมูลตั้งต้น (อ่านจาก assets/config/staff_accounts.json)
+  final List<StaffAccount> staffAccounts;
+
   /// id ของผู้ที่ล็อกอินค้างไว้จากครั้งก่อน (AuthProvider ใช้คืนสถานะล็อกอิน)
   String? savedUserId;
 
   /// เปิดข้อมูล: เปิดฐานข้อมูล -> ครั้งแรกใส่ข้อมูลตั้งต้น, ครั้งต่อไปโหลดของเดิม
+  /// [staffAccounts] = บัญชีเจ้าหน้าที่ (StaffAccount.load ใน main.dart) ไม่ส่ง = บัญชีตัวอย่าง
   /// [factory]/[path]/[demoData] ใช้ตอนทดสอบ ปกติไม่ต้องส่ง
   /// แอปจริงเริ่มจากฐานข้อมูลว่าง มีแค่บัญชีเจ้าหน้าที่ + นักศึกษาทดสอบ
   static Future<AppData> open({
     DatabaseFactory? factory,
     String? path,
     bool demoData = false,
+    List<StaffAccount> staffAccounts = StaffAccount.samples,
   }) async {
     final db = await AppDatabase.open(factory: factory, path: path);
-    final s = AppData._(db, demoData);
+    final s = AppData._(db, demoData, staffAccounts);
     db.onWriteError = (e) => s.onSaveFailed?.call(e);
     if (await db.isEmpty()) {
       s._seedAll();
@@ -267,7 +272,7 @@ class AppData {
   static const testStudentPassword = 'test1234';
 
   /// ข้อมูลตั้งต้นที่มีทุกครั้ง:
-  /// - บัญชีเจ้าหน้าที่จาก lib/config/staff_accounts.dart (ไม่ได้ commit เพราะมีรหัสผ่าน)
+  /// - บัญชีเจ้าหน้าที่จาก [staffAccounts] (ไฟล์ assets/config/staff_accounts.json ไม่ได้ commit)
   ///   id = st1, st2, ... ตามลำดับในไฟล์ (รูปเจ้าหน้าที่ใน [staffPhotos] จับคู่ด้วย id นี้)
   /// - บัญชีนักศึกษาทดสอบ 1 บัญชี
   void _seed() {

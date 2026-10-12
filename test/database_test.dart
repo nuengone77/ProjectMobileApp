@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
 import 'package:kaiwan_chuaiduai/data/app_database.dart';
+import 'package:kaiwan_chuaiduai/data/staff_account.dart';
 
 import 'package:kaiwan_chuaiduai/data/attachments.dart';
-import 'package:kaiwan_chuaiduai/config/staff_accounts.dart';
 import 'package:kaiwan_chuaiduai/data/app_data.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/passwords.dart';
@@ -209,6 +212,32 @@ void main() {
     expect(errors, hasLength(2));
   });
 
+  test(
+    'บัญชีเจ้าหน้าที่: อ่านจาก JSON ได้ และไม่มีไฟล์ก็ใช้บัญชีตัวอย่าง',
+    () async {
+      final real = await StaffAccount.load(
+        _FakeBundle(
+          '[{"email":"a@nu.ac.th","password":"p","name":"เจ้าหน้าที่ ก","nickname":"เอ"}]',
+        ),
+      );
+      expect(real.single.email, 'a@nu.ac.th');
+      expect(real.single.nickname, 'เอ');
+
+      // ไม่มีไฟล์ / รูปแบบผิด -> บัญชีตัวอย่าง (แอปไม่พัง)
+      expect(await StaffAccount.load(_FakeBundle(null)), StaffAccount.samples);
+      expect(
+        await StaffAccount.load(_FakeBundle('ไม่ใช่ JSON')),
+        StaffAccount.samples,
+      );
+
+      // บัญชีที่อ่านได้ถูกใช้สร้างข้อมูลตั้งต้น
+      final app = await openTestStore(path: path, demoData: false, staff: real);
+      expect(app.staff.single.email, 'a@nu.ac.th');
+      expect(app.login('a@nu.ac.th', 'p'), isNull);
+      expect(app.currentUser!.displayName, 'พี่ไข่หวาน เอ');
+    },
+  );
+
   test('รีเซ็ตข้อมูลทดลอง: กลับเป็นข้อมูลตั้งต้นและออกจากระบบ', () async {
     var s = await openTestStore(path: path);
     s.register(
@@ -228,4 +257,17 @@ void main() {
     expect(s.users.length, 7);
     expect(s.users.any((u) => u.email == 'nanthitb67@nu.ac.th'), isFalse);
   });
+}
+
+/// AssetBundle ปลอม: [text] = เนื้อไฟล์, null = ไม่มีไฟล์
+class _FakeBundle extends CachingAssetBundle {
+  _FakeBundle(this.text);
+  final String? text;
+
+  @override
+  Future<ByteData> load(String key) async {
+    final t = text;
+    if (t == null) throw StateError('ไม่พบไฟล์ $key');
+    return ByteData.sublistView(Uint8List.fromList(utf8.encode(t)));
+  }
 }

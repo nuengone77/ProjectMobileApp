@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 
 import 'data/attachments.dart';
 import 'data/app_data.dart';
+import 'data/staff_account.dart';
 import 'providers/app_providers.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth_screens.dart';
@@ -29,7 +30,9 @@ void main() {
 /// เป็นงานอสมวาร (async) ใช้เวลาสักครู่ จึงรอด้วย FutureBuilder ใน [AppStartup]
 Future<AppData> loadAppData() async {
   await Attachments.init();
-  final data = await AppData.open();
+  // บัญชีเจ้าหน้าที่จริงจาก assets (ไม่มีไฟล์ = ใช้บัญชีตัวอย่าง แอปยังรันได้)
+  final staff = await StaffAccount.load();
+  final data = await AppData.open(staffAccounts: staff);
   // รีเซ็ตข้อมูลทดลอง: รันด้วย flutter run --dart-define=RESET_DB=true
   // ไม่มีปุ่มในแอปให้ผู้ใช้กด
   if (const bool.fromEnvironment('RESET_DB')) {

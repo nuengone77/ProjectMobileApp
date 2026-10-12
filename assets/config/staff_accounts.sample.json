@@ -1,0 +1,20 @@
+[
+  {
+    "email": "staff1@nu.ac.th",
+    "password": "changeme1",
+    "name": "เจ้าหน้าที่คนที่ 1",
+    "nickname": "1"
+  },
+  {
+    "email": "staff2@nu.ac.th",
+    "password": "changeme2",
+    "name": "เจ้าหน้าที่คนที่ 2",
+    "nickname": "2"
+  },
+  {
+    "email": "staff3@nu.ac.th",
+    "password": "changeme3",
+    "name": "เจ้าหน้าที่คนที่ 3",
+    "nickname": "3"
+  }
+]

@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:kaiwan_chuaiduai/config/staff_accounts.dart';
 import 'package:kaiwan_chuaiduai/data/app_data.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/staff_account.dart';
@@ -172,12 +171,17 @@ class TestApp {
 /// เปิดแอปสำหรับทดสอบ: ใช้ SQLite ผ่าน FFI (รันบนเครื่องคอมได้)
 /// ไม่ส่ง [path] = ฐานข้อมูลในหน่วยความจำ (ใหม่ทุกครั้ง)
 /// [demoData] = ใส่นักศึกษา/แชท/นัด/เคสตัวอย่าง (เทสต์ส่วนใหญ่ใช้)
-Future<TestApp> openTestStore({String? path, bool demoData = true}) async {
+Future<TestApp> openTestStore({
+  String? path,
+  bool demoData = true,
+  List<StaffAccount> staff = StaffAccount.samples,
+}) async {
   sqfliteFfiInit();
   final data = await AppData.open(
     factory: databaseFactoryFfi,
     path: path ?? inMemoryDatabasePath,
     demoData: demoData,
+    staffAccounts: staff,
   );
   final app = TestApp(data);
   _opened.add(app);
@@ -199,8 +203,8 @@ Future<void> closeTestApps() async {
   _opened.clear();
 }
 
-/// บัญชีเจ้าหน้าที่ อ่านจาก lib/config/staff_accounts.dart (ไม่ได้ commit)
-/// เทสต์จึงไม่เขียนอีเมล/รหัสผ่านเจ้าหน้าที่ไว้ตรงๆ
+/// เทสต์ใช้บัญชีเจ้าหน้าที่ตัวอย่าง (StaffAccount.samples) รันได้ทุกเครื่องโดยไม่ต้องมีไฟล์บัญชีจริง
+const staffAccounts = StaffAccount.samples;
 final staff1 = staffAccounts[0];
 final staff2 = staffAccounts[1];
 final staff3 = staffAccounts[2];
