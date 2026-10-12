@@ -7,9 +7,13 @@
 //   จบการปรึกษา: เจ้าหน้าที่กรอกสรุป (เรื่องที่ปรึกษา / ช่วยอะไรได้บ้าง) ใน chat_screen.dart
 // แท็บอื่น: นัดหมาย (StaffAppointmentsScreen), โปรไฟล์
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
+import '../providers/appointment_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'appointment_screens.dart';
@@ -46,11 +50,12 @@ class _StaffShellState extends State<StaffShell> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final unread = store.staffUnread();
-        final pendingAppts = store.pendingAppointmentCount;
+    return Builder(
+      builder: (context) {
+        final unread = context.watch<ChatProvider>().staffUnread();
+        final pendingAppts = context
+            .watch<AppointmentProvider>()
+            .pendingAppointmentCount;
         return Scaffold(
           body: IndexedStack(
             index: _tab,
@@ -116,19 +121,24 @@ class _StaffShellState extends State<StaffShell> {
 class StaffHome extends StatelessWidget {
   const StaffHome({super.key});
 
-  // ฟัง store เพื่อให้ตัวเลขบนกระดิ่งอัปเดตทันทีเมื่อมีข้อความใหม่เข้ามา
+  // context.watch: ตัวเลขสรุป/ประวัติอัปเดตทันทีเมื่อข้อมูลแชทเปลี่ยน (บทที่ 10)
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: store,
-    builder: (context, _) =>
-        store.currentUser == null ? const SizedBox() : _content(context),
+  Widget build(BuildContext context) => Builder(
+    builder: (context) => context.watch<AuthProvider>().currentUser == null
+        ? const SizedBox()
+        : _content(context),
   );
 
   Widget _content(BuildContext context) {
-    final me = store.currentUser!;
+    final me = context.watch<AuthProvider>().currentUser;
+    if (me == null) return const SizedBox(); // ระหว่างแอนิเมชันออกจากระบบ
     // ตัวเลขสรุป: จำนวนที่ “ฉัน” ให้คำปรึกษาไปแล้ว (แชทที่จบแล้ว) แยกเร่งด่วน / ทั่วไป
-    final urgentDone = store.staffConsultedCount('urgent');
-    final generalDone = store.staffConsultedCount('general');
+    final urgentDone = context.watch<ChatProvider>().staffConsultedCount(
+      'urgent',
+    );
+    final generalDone = context.watch<ChatProvider>().staffConsultedCount(
+      'general',
+    );
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -153,10 +163,10 @@ class StaffHome extends StatelessWidget {
           const SizedBox(height: 24),
           const _Heading('ประวัติการถาม/ตอบ (จบแล้ว)'),
           // แต่ละหัวข้อ = ประวัติแชทที่จบการปรึกษาแล้ว (แชทที่ยังคุยอยู่ดูที่แท็บ “ข้อความ”)
-          for (final c in AppStore.categories)
+          for (final c in AppData.categories)
             Builder(
               builder: (context) {
-                final done = store.staffConversations(
+                final done = context.watch<ChatProvider>().staffConversations(
                   categoryId: c.id,
                   closed: true,
                 );
@@ -298,8 +308,8 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
     // หัวข้อเร่งด่วนเป็นแชทรวมเสมอ ไม่ต้องมีตัวกรองส่วนรวม/ส่วนตัว
     final showFilter =
         widget.categoryId == null ||
-        !AppStore.category(widget.categoryId!).urgent;
-    final me = store.currentUser;
+        !AppData.category(widget.categoryId!).urgent;
+    final me = context.watch<AuthProvider>().currentUser;
     final profile = widget.showProfile && me != null;
     return Scaffold(
       appBar: profile ? null : AppBar(title: Text(widget.title)),
@@ -343,10 +353,9 @@ class _StaffConversationsScreenState extends State<StaffConversationsScreen> {
               ),
             ),
           Expanded(
-            child: ListenableBuilder(
-              listenable: store,
-              builder: (context, _) {
-                final list = store.staffConversations(
+            child: Builder(
+              builder: (context) {
+                final list = context.watch<ChatProvider>().staffConversations(
                   categoryId: widget.categoryId,
                   specific: showFilter ? _specific : null,
                   closed: widget.closed,

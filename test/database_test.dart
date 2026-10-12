@@ -6,7 +6,7 @@ import 'package:kaiwan_chuaiduai/data/app_database.dart';
 
 import 'package:kaiwan_chuaiduai/data/attachments.dart';
 import 'package:kaiwan_chuaiduai/config/staff_accounts.dart';
-import 'package:kaiwan_chuaiduai/data/app_store.dart';
+import 'package:kaiwan_chuaiduai/data/app_data.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
 import 'package:kaiwan_chuaiduai/data/passwords.dart';
 
@@ -21,7 +21,10 @@ void main() {
     dir = Directory.systemTemp.createTempSync('kaiwan_db_test');
     path = '${dir.path}/kaiwan.db';
   });
-  tearDown(() => dir.deleteSync(recursive: true));
+  tearDown(() async {
+    await closeTestApps();
+    dir.deleteSync(recursive: true);
+  });
 
   test('เปิดครั้งแรกใส่ข้อมูลตั้งต้น และเก็บรหัสผ่านเป็น hash', () async {
     final s = await openTestStore(path: path);
@@ -44,7 +47,7 @@ void main() {
       expect(s.staff.length, staffAccounts.length);
       // นักศึกษาทดสอบล็อกอินได้ทันทีโดยไม่ต้องสมัคร
       expect(
-        s.login(AppStore.testStudentEmail, AppStore.testStudentPassword),
+        s.login(AppData.testStudentEmail, AppData.testStudentPassword),
         isNull,
       );
       expect(s.currentUser!.studentId, '67310001');
@@ -68,7 +71,7 @@ void main() {
         email: 'nanthitb67@nu.ac.th',
         password: 'abcd',
         name: 'นันทิต บุญมี',
-        major: AppStore.majors.first,
+        major: AppData.majors.first,
         studentId: '67313318',
         nameEn: 'Nanthit Bunmee',
         phone: '0899999999',
@@ -184,7 +187,7 @@ void main() {
       final me = s.currentUser!;
       expect(me.phone, '0891112222');
       expect(me.major, 'สาขาวิชาวิทยาการข้อมูล');
-      expect(AppStore.departmentOf(me.major), 'ภาควิชาคณิตศาสตร์');
+      expect(AppData.departmentOf(me.major), 'ภาควิชาคณิตศาสตร์');
     },
   );
 
@@ -212,7 +215,7 @@ void main() {
       email: 'nanthitb67@nu.ac.th',
       password: 'abcd',
       name: 'นันทิต บุญมี',
-      major: AppStore.majors.first,
+      major: AppData.majors.first,
       studentId: '67313318',
       nameEn: 'Nanthit Bunmee',
     );

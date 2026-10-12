@@ -8,7 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'app_store.dart';
+import 'app_data.dart';
 import 'models.dart';
 
 class ReportExport {
@@ -26,7 +26,7 @@ class ReportExport {
 
   /// ประเภทปรึกษาแบบสั้น: ทั่วไป / เร่งด่วน
   static String categoryLabel(String categoryId) =>
-      AppStore.category(categoryId).urgent ? 'เร่งด่วน' : 'ทั่วไป';
+      AppData.category(categoryId).urgent ? 'เร่งด่วน' : 'ทั่วไป';
 
   /// วันที่แบบ วว/ดด/ปปปป(พ.ศ.) ชม:นน เช่น 11/10/2569 10:00
   static String dateText(DateTime d) {

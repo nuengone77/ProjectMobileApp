@@ -4,14 +4,17 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/attachments.dart';
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
+import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'profile_screen.dart' show showStudentProfile;
@@ -33,32 +36,37 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scroll = ScrollController();
   int _lastCount = 0;
 
-  Conversation get conv => store.conversation(widget.conversationId);
+  /// Provider ของแชท เก็บไว้ใช้ตอน addListener/removeListener (initState/dispose)
+  late final ChatProvider _chat;
+
+  Conversation get conv => _chat.conversation(widget.conversationId);
 
   @override
   void initState() {
     super.initState();
-    store.addListener(_onStore);
-    WidgetsBinding.instance.addPostFrameCallback((_) => store.markRead(conv));
+    // context.read ใน initState: ดึง Provider มาครั้งเดียว แล้วฟังเองด้วย addListener
+    _chat = context.read<ChatProvider>();
+    _chat.addListener(_onStore);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _chat.markRead(conv));
   }
 
   @override
   void dispose() {
-    store.removeListener(_onStore);
+    _chat.removeListener(_onStore);
     _input.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  /// ถูกเรียกทุกครั้งที่ store เปลี่ยน: ถ้ามีข้อความใหม่เข้าห้องนี้
+  /// ถูกเรียกทุกครั้งที่ ChatProvider เปลี่ยน: ถ้ามีข้อความใหม่เข้าห้องนี้
   /// ให้ถือว่าอ่านแล้ว และเลื่อนลงไปข้อความล่าสุด
   void _onStore() {
-    if (!mounted || store.currentUser == null) return;
+    if (!mounted || context.read<AuthProvider>().currentUser == null) return;
     if (conv.messages.length != _lastCount) {
       _lastCount = conv.messages.length;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        store.markRead(conv);
+        _chat.markRead(conv);
         if (_scroll.hasClients) {
           _scroll.animateTo(
             0,
@@ -72,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// ส่งข้อความจากช่องพิมพ์
   void _send() {
-    store.send(conv, _input.text);
+    _chat.send(conv, _input.text);
     _input.clear();
   }
 
@@ -153,7 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
     for (final (path, name, isImage) in picked) {
       final file = await Attachments.import(path);
       if (!mounted) return;
-      store.sendAttachment(conv, file: file, name: name, isImage: isImage);
+      _chat.sendAttachment(conv, file: file, name: name, isImage: isImage);
     }
   }
 
@@ -182,17 +190,17 @@ class _ChatScreenState extends State<ChatScreen> {
   /// เจ้าหน้าที่บันทึก/แก้ไขสรุปของแชทที่จบแล้ว
   Future<void> _editSummary() async {
     final r = await _askSummary(closing: false);
-    if (r != null) store.saveSummary(conv, r.$1, r.$2, r.$3);
+    if (r != null) _chat.saveSummary(conv, r.$1, r.$2, r.$3);
   }
 
   /// จบการปรึกษา
   /// - เจ้าหน้าที่: ต้องกรอกสรุป 2 ช่องก่อน (เก็บเป็นประวัติ)
   /// - นักศึกษา: กดยืนยันอย่างเดียว
   Future<void> _close() async {
-    if (store.currentUser!.isStaff) {
+    if (context.read<AuthProvider>().currentUser!.isStaff) {
       final r = await _askSummary(closing: true);
       if (r != null) {
-        store.closeConversation(conv, topic: r.$1, help: r.$2, level: r.$3);
+        _chat.closeConversation(conv, topic: r.$1, help: r.$2, level: r.$3);
       }
       return;
     }
@@ -213,21 +221,24 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
-    if (ok == true) store.closeConversation(conv);
+    if (ok == true) _chat.closeConversation(conv);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final me = store.currentUser;
+    return Builder(
+      builder: (context) {
+        // watch ทั้งสองตัว: ข้อความใหม่ (Chat) และสถานะล็อกอิน (Auth) ทำให้หน้านี้วาดใหม่
+        context.watch<ChatProvider>();
+        final me = context.watch<AuthProvider>().currentUser;
         if (me == null) return const SizedBox();
         final c = conv;
-        final cat = AppStore.category(c.categoryId);
+        final cat = AppData.category(c.categoryId);
         final AppUser? other = me.isStaff
-            ? store.user(c.studentId)
-            : (c.staffId == null ? null : store.user(c.staffId!));
+            ? context.watch<AuthProvider>().user(c.studentId)
+            : (c.staffId == null
+                  ? null
+                  : context.watch<AuthProvider>().user(c.staffId!));
         // นักศึกษาเห็นแชทส่วนรวม (คนไหนก็ได้ / เร่งด่วน) เป็น “แชทรวมเจ้าหน้าที่” พร้อมรูปแมวไข่หวาน
         // แทนชื่อพี่คนใดคนหนึ่ง เพราะพี่ทุกคนเห็นและตอบได้
         final sharedForStudent = !me.isStaff && !c.isSpecific;
@@ -320,7 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     // แสดงเบอร์ฉุกเฉินจากค่าปัจจุบันเสมอ (ไม่ใช้ข้อความที่บันทึกไว้ตอนเปิดห้อง)
                     // แก้ emergencyPhone แล้วห้องเก่าก็แสดงเบอร์ใหม่ด้วย
                     if (m.isAlert) {
-                      return const _AlertNote(text: AppStore.emergencyMessage);
+                      return const _AlertNote(text: AppData.emergencyMessage);
                     }
                     if (m.isSystem) return _SystemNote(text: m.text);
                     final mine =
@@ -329,7 +340,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     return _Bubble(
                       message: m,
                       mine: mine,
-                      sender: store.user(m.senderId),
+                      sender: context.watch<AuthProvider>().user(m.senderId),
                       // ฝั่งเจ้าหน้าที่: ถ้าเพื่อนเจ้าหน้าที่เป็นคนตอบ ให้แสดงชื่อกำกับ
                       showSender: mine && m.senderId != me.id,
                     );
@@ -371,7 +382,7 @@ class _TopicBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urgent = AppStore.category(conv.categoryId).urgent;
+    final urgent = AppData.category(conv.categoryId).urgent;
     final scope = urgent
         ? 'ขอความช่วยเหลือแบบเร่งด่วน'
         : conv.isSpecific
@@ -401,7 +412,7 @@ class _TopicBanner extends StatelessWidget {
           ),
           if (isStaff && !conv.isSpecific && conv.staffId != null)
             Text(
-              'ดูแลโดย ${store.user(conv.staffId!).nickname}',
+              'ดูแลโดย ${context.watch<AuthProvider>().user(conv.staffId!).nickname}',
               style: const TextStyle(fontSize: 12, color: AppColors.muted),
             ),
         ],
@@ -649,13 +660,13 @@ class _AlertNote extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     var ok = false;
     try {
-      ok = await launchUrl(Uri(scheme: 'tel', path: AppStore.emergencyPhone));
+      ok = await launchUrl(Uri(scheme: 'tel', path: AppData.emergencyPhone));
     } catch (_) {}
     if (!ok) {
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
-            'อุปกรณ์นี้โทรออกไม่ได้ กรุณาโทร ${AppStore.emergencyPhone}',
+            'อุปกรณ์นี้โทรออกไม่ได้ กรุณาโทร ${AppData.emergencyPhone}',
           ),
         ),
       );
@@ -849,7 +860,7 @@ class _SummarySheetState extends State<_SummarySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final student = store.user(widget.conv.studentId);
+    final student = context.watch<AuthProvider>().user(widget.conv.studentId);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
@@ -937,7 +948,7 @@ class _SummaryPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final closer = conv.closedById == null
         ? null
-        : store.user(conv.closedById!);
+        : context.watch<AuthProvider>().user(conv.closedById!);
     Widget field(String label, String value) => Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Column(

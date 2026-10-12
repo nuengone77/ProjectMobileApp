@@ -8,14 +8,17 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
 import '../data/registration_rules.dart';
 import '../data/report_export.dart';
+import '../providers/auth_provider.dart';
+import '../providers/report_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -50,8 +53,12 @@ class _StaffReportScreenState extends State<StaffReportScreen> {
       ? thaiMonthYear(_month)
       : '${thaiDateShort(_custom!.start)} – ${thaiDateShort(_custom!.end)}';
 
-  List<CaseReport> get _rows =>
-      store.myReports(from: _from, to: _to, channel: _channel);
+  /// แถวตามตัวกรองปัจจุบัน ([listen] = true ใน build ให้ตารางวาดใหม่เมื่อข้อมูลเปลี่ยน)
+  List<CaseReport> _rows({bool listen = false}) =>
+      (listen
+              ? context.watch<ReportProvider>()
+              : context.read<ReportProvider>())
+          .myReports(from: _from, to: _to, channel: _channel);
 
   void _shiftMonth(int delta) => setState(() {
     _custom = null;
@@ -73,8 +80,8 @@ class _StaffReportScreenState extends State<StaffReportScreen> {
   // ---------------------------------------------------------------- export
 
   Future<void> _export(_ExportKind kind) async {
-    final rows = _rows;
-    final me = store.currentUser!;
+    final rows = _rows();
+    final me = context.read<AuthProvider>().currentUser!;
     final stamp = _custom == null
         ? '${_month.year + 543}-${_month.month.toString().padLeft(2, '0')}'
         : 'custom';
@@ -178,10 +185,9 @@ class _StaffReportScreenState extends State<StaffReportScreen> {
         icon: const Icon(Icons.add),
         label: const Text('เพิ่มเคส onsite'),
       ),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          final rows = _rows;
+      body: Builder(
+        builder: (context) {
+          final rows = _rows(listen: true);
           return Column(
             children: [
               // ---- ตัวกรองช่วงวันที่
@@ -314,7 +320,7 @@ class _ReportTable extends StatelessWidget {
             for (final r in rows)
               DataRow(
                 color: WidgetStatePropertyAll(
-                  AppStore.category(r.categoryId).urgent
+                  AppData.category(r.categoryId).urgent
                       ? AppColors.orange
                       : AppColors.yellowLight,
                 ),
@@ -398,14 +404,14 @@ class _ReportEditorState extends State<_ReportEditor> {
 
   /// พิมพ์รหัสนิสิตครบแล้วเจอในระบบ -> กรอกชื่อให้อัตโนมัติ
   void _onIdChanged(String v) {
-    final s = store.studentByIdNo(v);
+    final s = context.read<ReportProvider>().studentByIdNo(v);
     if (s != null && _name.text.trim().isEmpty) _name.text = s.name;
   }
 
   void _save() {
     if (!_form.currentState!.validate()) return;
     if (_isNew) {
-      store.addOnsiteReport(
+      context.read<ReportProvider>().addOnsiteReport(
         date: _date,
         studentIdNo: _idNo.text,
         studentName: _name.text,
@@ -415,7 +421,7 @@ class _ReportEditorState extends State<_ReportEditor> {
         level: _level,
       );
     } else {
-      store.updateReport(
+      context.read<ReportProvider>().updateReport(
         widget.row!,
         categoryId: _category,
         topic: _topic.text,
@@ -445,7 +451,7 @@ class _ReportEditorState extends State<_ReportEditor> {
       ),
     );
     if (ok == true && mounted) {
-      store.deleteReport(widget.row!);
+      context.read<ReportProvider>().deleteReport(widget.row!);
       Navigator.pop(context);
     }
   }
@@ -469,129 +475,145 @@ class _ReportEditorState extends State<_ReportEditor> {
         ],
       ),
     );
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Form(
-            key: _form,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _isNew ? 'เพิ่มเคส onsite' : 'แก้ไขแถวในตาราง',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _isNew
-                      ? 'กรอกหลังคุยกับนิสิตที่ห้องกิจการนิสิตเสร็จ'
-                      : 'แก้เฉพาะในตารางรายงาน ไม่กระทบข้อมูลในแชท',
-                  style: const TextStyle(color: AppColors.muted),
-                ),
-                const SizedBox(height: 16),
-                if (r != null) ...[
-                  // คอลัมน์ที่ล็อก (แก้ไม่ได้)
-                  locked('วันที่', ReportExport.dateText(r.date)),
-                  locked('รหัสนิสิต', r.studentIdNo),
-                  locked('ชื่อ-สกุล', r.studentName),
-                  locked('ช่องทาง', r.channel.name),
-                  const SizedBox(height: 10),
-                ] else ...[
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                      alignment: Alignment.centerLeft,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+    return UnsavedChangesGuard(
+      // บทที่ 9 (PopScope): แก้/กรอกแล้วปัดปิดหรือกดย้อนกลับ -> ถามก่อนทิ้ง
+      isDirty: () {
+        final r = widget.row;
+        if (r == null) {
+          return [_idNo, _name, _topic, _advice].any((c) => c.text.isNotEmpty);
+        }
+        return _topic.text != r.topic ||
+            _advice.text != r.advice ||
+            _category != r.categoryId ||
+            _level != r.level;
+      },
+      listenable: Listenable.merge([_idNo, _name, _topic, _advice]),
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Form(
+              key: _form,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _isNew ? 'เพิ่มเคส onsite' : 'แก้ไขแถวในตาราง',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
                     ),
-                    onPressed: _pickDateTime,
-                    icon: const Icon(Icons.event),
-                    label: Text('วันที่: ${ReportExport.dateText(_date)}'),
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _idNo,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(8),
+                  const SizedBox(height: 4),
+                  Text(
+                    _isNew
+                        ? 'กรอกหลังคุยกับนิสิตที่ห้องกิจการนิสิตเสร็จ'
+                        : 'แก้เฉพาะในตารางรายงาน ไม่กระทบข้อมูลในแชท',
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 16),
+                  if (r != null) ...[
+                    // คอลัมน์ที่ล็อก (แก้ไม่ได้)
+                    locked('วันที่', ReportExport.dateText(r.date)),
+                    locked('รหัสนิสิต', r.studentIdNo),
+                    locked('ชื่อ-สกุล', r.studentName),
+                    locked('ช่องทาง', r.channel.name),
+                    const SizedBox(height: 10),
+                  ] else ...[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        alignment: Alignment.centerLeft,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _pickDateTime,
+                      icon: const Icon(Icons.event),
+                      label: Text('วันที่: ${ReportExport.dateText(_date)}'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _idNo,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(8),
+                      ],
+                      onChanged: _onIdChanged,
+                      validator: RegistrationRules.studentIdError,
+                      decoration: _box('รหัสนิสิต'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _name,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'กรุณากรอกชื่อ-สกุล'
+                          : null,
+                      decoration: _box('ชื่อ-สกุล'),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // ---- คอลัมน์ที่แก้ได้
+                  DropdownButtonFormField<String>(
+                    initialValue: _category,
+                    decoration: _box('ประเภทการถาม/ตอบ'),
+                    borderRadius: BorderRadius.circular(14),
+                    items: [
+                      for (final c in AppData.categories)
+                        DropdownMenuItem(
+                          value: c.id,
+                          child: Text(ReportExport.categoryLabel(c.id)),
+                        ),
                     ],
-                    onChanged: _onIdChanged,
-                    validator: RegistrationRules.studentIdError,
-                    decoration: _box('รหัสนิสิต'),
+                    onChanged: (v) => setState(() => _category = v!),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
-                    controller: _name,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'กรุณากรอกชื่อ-สกุล'
-                        : null,
-                    decoration: _box('ชื่อ-สกุล'),
+                    controller: _topic,
+                    maxLines: 3,
+                    decoration: _box('เรื่องที่ถาม/ตอบ'),
                   ),
                   const SizedBox(height: 12),
-                ],
-                // ---- คอลัมน์ที่แก้ได้
-                DropdownButtonFormField<String>(
-                  initialValue: _category,
-                  decoration: _box('ประเภทการถาม/ตอบ'),
-                  borderRadius: BorderRadius.circular(14),
-                  items: [
-                    for (final c in AppStore.categories)
-                      DropdownMenuItem(
-                        value: c.id,
-                        child: Text(ReportExport.categoryLabel(c.id)),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _category = v!),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _topic,
-                  maxLines: 3,
-                  decoration: _box('เรื่องที่ถาม/ตอบ'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _advice,
-                  maxLines: 3,
-                  decoration: _box('คำตอบที่เจ้าหน้าที่ให้'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<CaseLevel>(
-                  initialValue: _level,
-                  decoration: _box('ระดับ'),
-                  hint: const Text('เลือกระดับ'),
-                  borderRadius: BorderRadius.circular(14),
-                  items: [
-                    for (final l in CaseLevel.values)
-                      DropdownMenuItem(value: l, child: Text(l.display)),
-                  ],
-                  onChanged: (v) => setState(() => _level = v),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _save,
-                  child: Text(_isNew ? 'เพิ่มลงตาราง' : 'บันทึก'),
-                ),
-                if (r != null && r.isManual) ...[
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.alert,
-                    ),
-                    onPressed: _delete,
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('ลบแถวนี้'),
+                  TextFormField(
+                    controller: _advice,
+                    maxLines: 3,
+                    decoration: _box('คำตอบที่เจ้าหน้าที่ให้'),
                   ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<CaseLevel>(
+                    initialValue: _level,
+                    decoration: _box('ระดับ'),
+                    hint: const Text('เลือกระดับ'),
+                    borderRadius: BorderRadius.circular(14),
+                    items: [
+                      for (final l in CaseLevel.values)
+                        DropdownMenuItem(value: l, child: Text(l.display)),
+                    ],
+                    onChanged: (v) => setState(() => _level = v),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: _save,
+                    child: Text(_isNew ? 'เพิ่มลงตาราง' : 'บันทึก'),
+                  ),
+                  if (r != null && r.isManual) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.alert,
+                      ),
+                      onPressed: _delete,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('ลบแถวนี้'),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

@@ -10,9 +10,12 @@
 //             - ไม่ว่าง -> กด “เสนอเวลาอื่น” เลือกวัน/เวลาที่ตัวเองว่าง (+ ข้อความ)
 //                         -> นักศึกษากด “ตกลงเวลานี้” หรือ “เลือกเวลาอื่น”
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
+import '../providers/appointment_provider.dart';
+import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -20,8 +23,8 @@ import '../widgets/common.dart';
 DateTime firstBookableDay() {
   final now = DateTime.now();
   var d = DateTime(now.year, now.month, now.day);
-  while (!AppStore.isOfficeDay(d) ||
-      !AppStore.slotsOf(d).any(AppStore.isBookable)) {
+  while (!AppData.isOfficeDay(d) ||
+      !AppData.slotsOf(d).any(AppData.isBookable)) {
     d = d.add(const Duration(days: 1));
   }
   return d;
@@ -43,7 +46,7 @@ class SlotDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slots = AppStore.slotsOf(day).where(AppStore.isBookable).toList();
+    final slots = AppData.slotsOf(day).where(AppData.isBookable).toList();
     return DropdownButtonFormField<DateTime>(
       // key ตามวัน: เปลี่ยนวันแล้วล้างเวลาที่เลือกไว้
       key: ValueKey(day),
@@ -92,7 +95,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   final _note = TextEditingController();
 
   void _submit() {
-    final a = store.requestAppointment(
+    final a = context.read<AppointmentProvider>().requestAppointment(
       _slot!,
       _note.text,
       staffId: widget.staffId,
@@ -113,62 +116,67 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('นัดหมายที่ห้องกิจการนิสิต'),
-        actions: const [HomeButton()],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          const OfficeInfoCard(),
-          const SizedBox(height: 12),
-          _WithWhom(staffId: widget.staffId),
-          const SizedBox(height: 16),
-          const _SectionTitle('เลือกวัน'),
-          // ปฏิทิน: เลือกได้เฉพาะวันจันทร์–ศุกร์ ภายใน 60 วัน
-          Material(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            child: CalendarDatePicker(
-              initialDate: _day,
-              firstDate: today,
-              lastDate: today.add(const Duration(days: 60)),
-              selectableDayPredicate: AppStore.isOfficeDay,
-              onDateChanged: (d) => setState(() {
-                _day = d;
-                _slot = null;
-              }),
+    return UnsavedChangesGuard(
+      // บทที่ 9 (PopScope): เลือกเวลา/พิมพ์โน้ตแล้วกดย้อนกลับ -> ถามก่อนทิ้ง
+      isDirty: () => _slot != null || _note.text.isNotEmpty,
+      listenable: _note,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('นัดหมายที่ห้องกิจการนิสิต'),
+          actions: const [HomeButton()],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            const OfficeInfoCard(),
+            const SizedBox(height: 12),
+            _WithWhom(staffId: widget.staffId),
+            const SizedBox(height: 16),
+            const _SectionTitle('เลือกวัน'),
+            // ปฏิทิน: เลือกได้เฉพาะวันจันทร์–ศุกร์ ภายใน 60 วัน
+            Material(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              child: CalendarDatePicker(
+                initialDate: _day,
+                firstDate: today,
+                lastDate: today.add(const Duration(days: 60)),
+                selectableDayPredicate: AppData.isOfficeDay,
+                onDateChanged: (d) => setState(() {
+                  _day = d;
+                  _slot = null;
+                }),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _SectionTitle(
-            'เลือกเวลา · ${thaiDate(_day)}',
-            caption:
-                'ให้คำปรึกษาครั้งละ 30 นาที พี่จะตรวจเวลาว่างแล้วยืนยันให้',
-          ),
-          SlotDropdown(
-            day: _day,
-            value: _slot,
-            onChanged: (s) => setState(() => _slot = s),
-          ),
-          const SizedBox(height: 16),
-          const _SectionTitle('อยากถาม/ตอบเรื่องอะไร (ไม่บังคับ)'),
-          TextField(
-            controller: _note,
-            maxLines: 3,
-            decoration: _boxDecoration('เล่าสั้นๆ ให้พี่เตรียมตัวก่อนได้'),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _slot == null ? null : _submit,
-            child: Text(
-              _slot == null
-                  ? 'เลือกเวลาก่อนนะ'
-                  : 'ส่งคำขอนัด ${timeRange(_slot!)}',
+            const SizedBox(height: 16),
+            _SectionTitle(
+              'เลือกเวลา · ${thaiDate(_day)}',
+              caption:
+                  'ให้คำปรึกษาครั้งละ 30 นาที พี่จะตรวจเวลาว่างแล้วยืนยันให้',
             ),
-          ),
-        ],
+            SlotDropdown(
+              day: _day,
+              value: _slot,
+              onChanged: (s) => setState(() => _slot = s),
+            ),
+            const SizedBox(height: 16),
+            const _SectionTitle('อยากถาม/ตอบเรื่องอะไร (ไม่บังคับ)'),
+            TextField(
+              controller: _note,
+              maxLines: 3,
+              decoration: _boxDecoration('เล่าสั้นๆ ให้พี่เตรียมตัวก่อนได้'),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _slot == null ? null : _submit,
+              child: Text(
+                _slot == null
+                    ? 'เลือกเวลาก่อนนะ'
+                    : 'ส่งคำขอนัด ${timeRange(_slot!)}',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -192,7 +200,9 @@ class _WithWhom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final staff = staffId == null ? null : store.user(staffId!);
+    final staff = staffId == null
+        ? null
+        : context.watch<AuthProvider>().user(staffId!);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -261,11 +271,11 @@ class OfficeInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            AppStore.officeName,
+            AppData.officeName,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
-          row(Icons.place_outlined, AppStore.officeLocation),
-          row(Icons.schedule, AppStore.officeHoursText),
+          row(Icons.place_outlined, AppData.officeLocation),
+          row(Icons.schedule, AppData.officeHoursText),
         ],
       ),
     );
@@ -310,6 +320,7 @@ class MyAppointmentsScreen extends StatelessWidget {
 
   /// ถามยืนยันก่อนยกเลิกนัด (กันกดพลาด)
   Future<void> _confirmCancel(BuildContext context, Appointment a) async {
+    final appts = context.read<AppointmentProvider>(); // ดึงก่อน await
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -331,17 +342,16 @@ class MyAppointmentsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) store.cancelAppointment(a);
+    if (ok == true) appts.cancelAppointment(a);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('นัดหมายของฉัน')),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          final list = store.myAppointments();
+      body: Builder(
+        builder: (context) {
+          final list = context.watch<AppointmentProvider>().myAppointments();
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -374,7 +384,9 @@ class MyAppointmentsScreen extends StatelessWidget {
                       // ไม่สะดวกเวลาที่พี่เสนอ: ยกเลิกนัดนี้แล้วเลือกเวลาใหม่ (กับพี่คนเดิม/คนไหนก็ได้ตามเดิม)
                       TextButton(
                         onPressed: () {
-                          store.cancelAppointment(a);
+                          context.read<AppointmentProvider>().cancelAppointment(
+                            a,
+                          );
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -390,7 +402,9 @@ class MyAppointmentsScreen extends StatelessWidget {
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 40),
                         ),
-                        onPressed: () => store.acceptProposedTime(a),
+                        onPressed: () => context
+                            .read<AppointmentProvider>()
+                            .acceptProposedTime(a),
                         child: const Text('ตกลงเวลานี้'),
                       ),
                     ],
@@ -429,7 +443,11 @@ class _StaffAppointmentsScreenState extends State<StaffAppointmentsScreen> {
       builder: (_) => _ProposeTimeSheet(appointment: a),
     );
     if (result == null || !mounted) return;
-    store.proposeAppointmentTime(a, result.$1, result.$2);
+    context.read<AppointmentProvider>().proposeAppointmentTime(
+      a,
+      result.$1,
+      result.$2,
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -443,10 +461,11 @@ class _StaffAppointmentsScreenState extends State<StaffAppointmentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('นัดหมายที่ห้องกิจการนิสิต')),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          final list = store.staffAppointments(status: _filter);
+      body: Builder(
+        builder: (context) {
+          final list = context.watch<AppointmentProvider>().staffAppointments(
+            status: _filter,
+          );
           return Column(
             children: [
               Padding(
@@ -456,7 +475,7 @@ class _StaffAppointmentsScreenState extends State<StaffAppointmentsScreen> {
                     ButtonSegment(
                       value: AppointmentStatus.pending,
                       label: Text(
-                        'รอยืนยัน (${store.pendingAppointmentCount})',
+                        'รอยืนยัน (${context.watch<AppointmentProvider>().pendingAppointmentCount})',
                       ),
                     ),
                     const ButtonSegment(
@@ -496,8 +515,9 @@ class _StaffAppointmentsScreenState extends State<StaffAppointmentsScreen> {
                                     style: FilledButton.styleFrom(
                                       minimumSize: const Size(0, 40),
                                     ),
-                                    onPressed: () =>
-                                        store.confirmAppointment(a),
+                                    onPressed: () => context
+                                        .read<AppointmentProvider>()
+                                        .confirmAppointment(a),
                                     child: const Text('ยืนยัน สะดวกเวลานี้'),
                                   ),
                                 ],
@@ -534,7 +554,7 @@ class _ProposeTimeSheetState extends State<_ProposeTimeSheet> {
   DateTime _initialDay() {
     final s = widget.appointment.start;
     final day = DateTime(s.year, s.month, s.day);
-    return AppStore.slotsOf(day).any(AppStore.isBookable)
+    return AppData.slotsOf(day).any(AppData.isBookable)
         ? day
         : firstBookableDay();
   }
@@ -547,7 +567,7 @@ class _ProposeTimeSheetState extends State<_ProposeTimeSheet> {
       initialDate: _day,
       firstDate: today,
       lastDate: today.add(const Duration(days: 60)),
-      selectableDayPredicate: AppStore.isOfficeDay,
+      selectableDayPredicate: AppData.isOfficeDay,
     );
     if (d != null) {
       setState(() {
@@ -642,10 +662,12 @@ class AppointmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = appointment;
-    final student = store.user(a.studentId);
-    final staff = a.staffId == null ? null : store.user(a.staffId!);
+    final student = context.watch<AuthProvider>().user(a.studentId);
+    final staff = a.staffId == null
+        ? null
+        : context.watch<AuthProvider>().user(a.staffId!);
     final conflicts = forStaff && a.status == AppointmentStatus.pending
-        ? store.conflictsOf(a)
+        ? context.watch<AppointmentProvider>().conflictsOf(a)
         : const <Appointment>[];
     final highlight =
         (forStaff && a.status == AppointmentStatus.pending) ||
@@ -685,7 +707,7 @@ class AppointmentCard extends StatelessWidget {
           if (forStaff)
             Text('${student.name} · ${student.major}')
           else
-            const Text('${AppStore.officeName} · ${AppStore.officeLocation}'),
+            const Text('${AppData.officeName} · ${AppData.officeLocation}'),
           // นัดกับใคร: ฝั่งเจ้าหน้าที่บอกว่าขอตัวเองโดยตรงไหม, ฝั่งนักศึกษาบอกว่าส่งถึงใคร
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -695,7 +717,7 @@ class AppointmentCard extends StatelessWidget {
                         ? '🔒 ขอนัดกับคุณโดยตรง'
                         : 'ส่งถึงพี่ไข่หวานทุกคน')
                   : (a.requestedStaffId != null
-                        ? 'นัดกับ ${store.user(a.requestedStaffId!).displayName}'
+                        ? 'นัดกับ ${context.watch<AuthProvider>().user(a.requestedStaffId!).displayName}'
                         : 'นัดกับพี่ไข่หวานคนไหนก็ได้'),
               style: TextStyle(
                 fontSize: 13,
@@ -759,7 +781,7 @@ class _ProposalBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = appointment;
-    final staff = store.user(a.staffId!);
+    final staff = context.watch<AuthProvider>().user(a.staffId!);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8),

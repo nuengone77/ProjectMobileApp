@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kaiwan_chuaiduai/data/app_store.dart';
+import 'package:kaiwan_chuaiduai/data/app_data.dart';
 import 'package:kaiwan_chuaiduai/data/registration_rules.dart';
 
 import 'test_store.dart';
@@ -88,7 +88,7 @@ void main() {
   test('บัญชีนักศึกษาทดสอบ (testerk67) ผ่านเงื่อนไขการลงทะเบียนทุกข้อ', () {
     expect(
       RegistrationRules.emailError(
-        AppStore.testStudentEmail,
+        AppData.testStudentEmail,
         nameEn: 'Tester Kaiwan',
         studentId: '67310001',
       ),
@@ -145,7 +145,7 @@ void main() {
         email: 'nanthitb67@gmail.com',
         password: 'abcd',
         name: 'นันทิต บุญมี',
-        major: AppStore.majors.first,
+        major: AppData.majors.first,
         studentId: '67313318',
         nameEn: 'Nanthit Bunmee',
       ),
@@ -156,7 +156,7 @@ void main() {
         email: 'NanthitB67@nu.ac.th',
         password: 'abcd',
         name: 'นันทิต บุญมี',
-        major: AppStore.majors.first,
+        major: AppData.majors.first,
         studentId: '67313318',
         nameEn: 'Nanthit Bunmee',
       ),
@@ -183,15 +183,15 @@ void main() {
     'ภาควิชา/สาขา: หาภาควิชาจากสาขาได้ และสมัครด้วยสาขานอกรายการไม่ได้',
     () async {
       expect(
-        AppStore.departmentOf('สาขาวิชาวิทยาการข้อมูล'),
+        AppData.departmentOf('สาขาวิชาวิทยาการข้อมูล'),
         'ภาควิชาคณิตศาสตร์',
       );
       expect(
-        AppStore.departmentOf('สาขาวิชาเทคโนโลยีสารสนเทศ'),
+        AppData.departmentOf('สาขาวิชาเทคโนโลยีสารสนเทศ'),
         'ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ',
       );
-      expect(AppStore.departmentOf('วิศวกรรมคอมพิวเตอร์'), isNull);
-      expect(AppStore.majors.length, 11);
+      expect(AppData.departmentOf('วิศวกรรมคอมพิวเตอร์'), isNull);
+      expect(AppData.majors.length, 11);
       final s = await openTestStore();
       expect(
         s.register(

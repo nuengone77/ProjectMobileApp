@@ -40,7 +40,7 @@
 
 ## สมัครสมาชิก (นักศึกษา)
 
-ปุ่ม "สมัครสมาชิก (sign in)": Email, password, รหัสนิสิต, ชื่อ-สกุล, ชื่อ-สกุลภาษาอังกฤษ, เบอร์โทร, ภาควิชา → สาขา (`AppStore.departments`)
+ปุ่ม "สมัครสมาชิก (sign in)": Email, password, รหัสนิสิต, ชื่อ-สกุล, ชื่อ-สกุลภาษาอังกฤษ, เบอร์โทร, ภาควิชา → สาขา (`AppData.departments`)
 → กด sign in แล้วต้องกด **ยอมรับและดำเนินการต่อ** ในหน้าขอความยินยอมก่อนถึงจะสมัครสำเร็จ — บัญชีเก็บในฐานข้อมูลในเครื่อง
 
 เงื่อนไข (`lib/data/registration_rules.dart`, ตัวอักษรอังกฤษแปลงเป็นตัวเล็กก่อนตรวจ):
@@ -75,7 +75,14 @@
 
 ## โครงสร้าง
 
-- `lib/data/` — models, `AppStore` (logic + ข้อมูลในหน่วยความจำ), `app_database.dart` (SQLite), `registration_rules.dart`, `passwords.dart`, `report_export.dart` (CSV/PDF)
+- `lib/data/` — models, `AppData` (ข้อมูลกลาง + ค่าคงที่ + ข้อมูลตั้งต้น), `app_database.dart` (SQLite), `registration_rules.dart`, `passwords.dart`, `report_export.dart` (CSV/PDF)
+- `lib/providers/` — state management ด้วย **Provider** (บทที่ 10–11) แยกตามฟีเจอร์
+  - `auth_provider.dart` ล็อกอิน / สมัคร / โปรไฟล์
+  - `chat_provider.dart` แชท / ไฟล์แนบ / จบการสนทนา
+  - `appointment_provider.dart` นัดหมายห้องกิจการนิสิต
+  - `report_provider.dart` ตารางสรุปเคส
+  - `app_providers.dart` รวมทุกตัวด้วย `MultiProvider` + `ChangeNotifierProxyProvider` (Chat/Appointment/Report พึ่ง Auth, Chat พึ่ง Report)
+  - หน้าจอใช้ `context.watch<...>()` ใน build (วาดใหม่เมื่อข้อมูลเปลี่ยน) และ `context.read<...>()` ในปุ่ม/คำสั่ง
 - `assets/fonts/` — ฟอนต์ Sarabun (OFL) ใช้วาดตารางใน PDF
 - `lib/screens/` — auth, student, staff, chat, profile
-- `lib/widgets/common.dart` — การ์ดเมนูสีพีช, กระดิ่งแจ้งเตือน, avatar
+- `lib/widgets/common.dart` — การ์ดเมนู, กระดิ่งแจ้งเตือน, avatar, ป้ายกราฟิก, แผงเหลืองขอบโค้ง

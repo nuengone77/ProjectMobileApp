@@ -10,9 +10,13 @@
 //               - คนไหนก็ได้  -> เข้าแชททันที
 //               - เลือกเจาะจง -> StaffPickerScreen (เลือกพี่) -> เข้าแชท
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/app_store.dart';
+import '../data/app_data.dart';
 import '../data/models.dart';
+import '../providers/appointment_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'appointment_screens.dart';
@@ -47,15 +51,16 @@ class _StudentShellState extends State<StudentShell> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final unread = store.studentUnreadTotal;
-        final apptUpdates = store.studentAppointmentUpdates;
+    return Builder(
+      builder: (context) {
+        final unread = context.watch<ChatProvider>().studentUnreadTotal;
+        final apptUpdates = context
+            .watch<AppointmentProvider>()
+            .studentAppointmentUpdates;
         // อยู่ที่แท็บนัดหมายอยู่แล้ว = เห็นสถานะใหม่แล้ว ล้าง badge
         if (_tab == 2 && apptUpdates > 0) {
           WidgetsBinding.instance.addPostFrameCallback(
-            (_) => store.markAppointmentsSeen(),
+            (_) => context.read<AppointmentProvider>().markAppointmentsSeen(),
           );
         }
         return Scaffold(
@@ -120,7 +125,9 @@ class StudentHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final me = store.currentUser!;
+    final me = context.watch<AuthProvider>().currentUser;
+    // ระหว่างแอนิเมชันตอนออกจากระบบ หน้านี้ยังค้างบนจอแต่ไม่มีผู้ใช้แล้ว
+    if (me == null) return const SizedBox();
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -197,7 +204,7 @@ class StudentHome extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          for (final c in AppStore.categories)
+          for (final c in AppData.categories)
             OrangeCard(
               title: c.title,
               subtitle: c.subtitle,
@@ -373,7 +380,7 @@ class StaffPickerScreen extends StatelessWidget {
                 ? 'เฉพาะพี่ที่เลือกเท่านั้นที่จะได้รับแจ้งเตือนเวลานัด'
                 : 'หัวข้อ: ${category.title}',
           ),
-          for (final s in store.staff)
+          for (final s in context.watch<AuthProvider>().staff)
             OrangeCard(
               leading: StaffAvatar(user: s, size: 72),
               title: s.displayName,
@@ -401,7 +408,7 @@ void openChat(
   required ConsultCategory category,
   String? staffId,
 }) {
-  final conv = store.openConversation(
+  final conv = context.read<ChatProvider>().openConversation(
     categoryId: category.id,
     staffId: staffId,
   );
@@ -418,10 +425,9 @@ class MyChatsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('แชทของฉัน')),
-      body: ListenableBuilder(
-        listenable: store,
-        builder: (context, _) {
-          final list = store.myConversations();
+      body: Builder(
+        builder: (context) {
+          final list = context.watch<ChatProvider>().myConversations();
           if (list.isEmpty) {
             return const Center(
               child: Text(
@@ -459,13 +465,15 @@ class ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = AppStore.category(conv.categoryId);
+    final cat = AppData.category(conv.categoryId);
     final unread = forStaff
-        ? store.unreadForStaff(conv)
-        : store.unreadForStudent(conv);
+        ? context.watch<ChatProvider>().unreadForStaff(conv)
+        : context.watch<ChatProvider>().unreadForStudent(conv);
     final AppUser? other = forStaff
-        ? store.user(conv.studentId)
-        : (conv.staffId == null ? null : store.user(conv.staffId!));
+        ? context.watch<AuthProvider>().user(conv.studentId)
+        : (conv.staffId == null
+              ? null
+              : context.watch<AuthProvider>().user(conv.staffId!));
     // ฝั่งนักศึกษา แชทส่วนรวม = “แชทรวมเจ้าหน้าที่” + รูปแมวไข่หวาน (เหมือนหัวห้องแชท)
     final sharedForStudent = !forStaff && !conv.isSpecific;
     final title = forStaff
@@ -526,7 +534,7 @@ class ConversationTile extends StatelessWidget {
             )
           else if (last != null)
             Text(
-              last.isAlert ? AppStore.emergencyMessage : last.preview,
+              last.isAlert ? AppData.emergencyMessage : last.preview,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

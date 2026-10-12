@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kaiwan_chuaiduai/data/app_store.dart';
+import 'package:kaiwan_chuaiduai/data/app_data.dart';
 import 'package:kaiwan_chuaiduai/data/models.dart';
-import 'package:kaiwan_chuaiduai/main.dart';
 import 'package:kaiwan_chuaiduai/screens/appointment_screens.dart';
 import 'package:kaiwan_chuaiduai/screens/auth_screens.dart';
 import 'package:kaiwan_chuaiduai/widgets/common.dart';
@@ -12,7 +11,7 @@ import 'test_store.dart';
 
 /// ล็อกอินผ่านหน้า Login โดยพิมพ์อีเมล + รหัสผ่านของบัญชีตั้งต้น
 Future<void> loginAs(WidgetTester tester, String email) async {
-  await tester.pumpWidget(const KaiwanApp());
+  await tester.pumpWidget(store.widget());
   final fields = find.byType(TextField);
   await tester.enterText(fields.at(0), email);
   await tester.enterText(fields.at(1), testPasswords[email]!);
@@ -41,6 +40,9 @@ Future<void> tapText(WidgetTester tester, String text) async {
 /// ล็อกอินเป็นนักศึกษาทดลองผ่านหน้า Login
 Future<void> loginAsStudent(WidgetTester tester) =>
     loginAs(tester, 'somjaij67@nu.ac.th');
+
+/// แอปทดสอบ (ข้อมูล + Provider จริงทั้ง 4 ตัว) ใช้ร่วมกันทุก test ในไฟล์นี้
+late TestApp store;
 
 void main() {
   // ฐานข้อมูลทดสอบ (SQLite ในหน่วยความจำ) ใช้ร่วมกันทุก test ในไฟล์นี้
@@ -170,7 +172,7 @@ void main() {
     await tapText(tester, 'ขอความช่วยเหลือแบบเร่งด่วน');
     await tester.pumpAndSettle();
     // ข้อความอัตโนมัติแจ้งเบอร์ฉุกเฉินขึ้นทันที
-    expect(find.text(AppStore.emergencyMessage), findsOneWidget);
+    expect(find.text(AppData.emergencyMessage), findsOneWidget);
     // แชทส่วนรวม: นักศึกษาเห็นชื่อ “แชทรวมเจ้าหน้าที่” + รูปแมวไข่หวาน
     expect(find.text('แชทรวมเจ้าหน้าที่'), findsOneWidget);
     expect(find.byType(CatAvatar), findsOneWidget);
@@ -289,7 +291,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('นัดกับ ${shown(staff2)}'), findsOneWidget);
 
-    final start = AppStore.slotsOf(firstDayForTest()).last;
+    final start = AppData.slotsOf(firstDayForTest()).last;
     final a = store.requestAppointment(start, '', staffId: 'st2');
 
     store.logout();
@@ -358,7 +360,7 @@ void main() {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(const KaiwanApp());
+    await tester.pumpWidget(store.widget());
     await tester.tap(find.textContaining('สมัครสมาชิก', findRichText: true));
     await tester.pumpAndSettle();
 
@@ -402,7 +404,7 @@ void main() {
     expect(me.nameEn, 'Mai Thodsob');
     expect(me.phone, '0899999999');
     expect(me.major, 'สาขาวิชาเคมี');
-    expect(AppStore.departmentOf(me.major), 'ภาควิชาเคมี');
+    expect(AppData.departmentOf(me.major), 'ภาควิชาเคมี');
     store.logout();
     await tester.pumpAndSettle(const Duration(seconds: 1));
   });
@@ -463,7 +465,7 @@ void main() {
     await tester.tap(find.byTooltip('แก้ไขสาขา'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.text(AppStore.departmentOf(store.currentUser!.major)!).last,
+      find.text(AppData.departmentOf(store.currentUser!.major)!).last,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('ภาควิชาเคมี').last);
@@ -604,7 +606,7 @@ void main() {
 /// วันทำการถัดไป (ใช้สร้างเวลานัดในอนาคตแน่นอน)
 DateTime firstDayForTest() {
   var d = DateTime.now().add(const Duration(days: 1));
-  while (!AppStore.isOfficeDay(d)) {
+  while (!AppData.isOfficeDay(d)) {
     d = d.add(const Duration(days: 1));
   }
   return d;
