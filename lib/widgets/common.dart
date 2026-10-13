@@ -262,7 +262,7 @@ String timeRange(DateTime start) {
 }
 
 /// รูปแมวไข่หวาน: รูปของ “แชทรวมเจ้าหน้าที่” ที่นิสิตเห็น (ใช้ผ่าน [CatAvatar])
-const kaiwanCatImage = 'assets/images/kaiwan_cat.png';
+const kaiwanCatImage = 'assets/images/banner_kaiwan_logo.png';
 
 /// รูปแมวโบกมือ: รูปโปรไฟล์ของนิสิต (ใช้ผ่าน [StaffAvatar] และหน้าโปรไฟล์นิสิต)
 const studentAvatarImage = 'assets/images/cat_wave.png';
