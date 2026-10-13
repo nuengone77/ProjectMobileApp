@@ -311,7 +311,7 @@ class ConsultModeScreen extends StatelessWidget {
           const AppBanner(image: 'assets/images/banner_kaiwan.png'),
           const SizedBox(height: 18),
           StepHeader(
-            title: inPerson ? 'อยากนัดกับพี่คนไหน?' : 'เลือกรูปแบบการถามคอบ',
+            title: inPerson ? 'อยากนัดกับพี่คนไหน?' : 'เลือกรูปแบบการถามตอบ',
             caption: inPerson
                 ? 'ให้พี่คนไหนก็ได้ที่ว่างรับนัด หรือเลือกพี่เอง'
                 : 'อยากคุยกับพี่ไข่หวานแบบไหนดี?',
