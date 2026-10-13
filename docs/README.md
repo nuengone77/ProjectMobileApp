@@ -11,3 +11,4 @@
 | [04-chat-flow.md](04-chat-flow.md) | Flowchart แชท: ทัก → ตอบ → จบ → ตารางสรุปเคส | คนที่ 2 |
 | [05-appointment-state.md](05-appointment-state.md) | State Diagram สถานะนัดหมาย | คนที่ 3 |
 | [06-auth-student-flow.md](06-auth-student-flow.md) | Flowchart สมัคร/ล็อกอิน + หน้าแรกนิสิต | คนที่ 4 |
+| [07-class-diagram.md](07-class-diagram.md) | Class Diagram: ภาพรวมทั้งแอป + แยกของแต่ละคน | ทุกคน (มีหัวข้อแยกคนที่ 1–4) |
